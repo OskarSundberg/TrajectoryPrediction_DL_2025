@@ -1,0 +1,4 @@
+The number of pedestrian: 5878
+The number of bicycles: 3779
+The number of light vehicles: 28209
+The number of heavy vehicles: 516
