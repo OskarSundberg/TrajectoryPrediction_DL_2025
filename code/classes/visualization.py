@@ -52,7 +52,7 @@ class Visualization:
         heavy_vehicle_count = heavyVeh_traj.ngroups
 
         # Write these counts to a metadata file
-        with open(f'./data/CombinedData/{self.loc.location_name}/agent_info.txt', 'w') as f:
+        with open(f'TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.loc.location_name}/agent_info.txt', 'w') as f:
             f.write(f"The number of pedestrian: {pedestrian_count}\n")
             f.write(f"The number of bicycles: {bicycle_count}\n")
             f.write(f"The number of light vehicles: {light_vehicle_count}\n")
@@ -90,7 +90,7 @@ class Visualization:
 
         # Adjust layout and save the image
         plt.tight_layout()
-        plt.savefig(f"./data/CombinedData/{self.loc.location_name}/all_traj.png")
+        plt.savefig(f"TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.loc.location_name}/all_traj.png")
 
     def visualize_counts(self):
         """
@@ -116,7 +116,7 @@ class Visualization:
         plt.xticks(rotation=45)
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(f"./data/CombinedData/{self.loc.location_name}/agent_counts.png")
+        plt.savefig(f"TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.loc.location_name}/agent_counts.png")
 
     def visualize_time(self):
         """
@@ -141,7 +141,7 @@ class Visualization:
         plt.xticks(rotation=45)
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(f"./data/CombinedData/{self.loc.location_name}/agent_counts_in_time.png")
+        plt.savefig(f"TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.loc.location_name}/agent_counts_in_time.png")
 
     def visualize_vectors(self):
         """
@@ -184,7 +184,7 @@ class Visualization:
         plt.figure(figsize=(10, 10))
         plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
         plt.title('Visualization of Points and Vectors')
-        plt.savefig(f"./data/CombinedData/{self.loc.location_name}/env_vectors.png")
+        plt.savefig(f"TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.loc.location_name}/env_vectors.png")
         
         
     def plot_agent_interaction_results(

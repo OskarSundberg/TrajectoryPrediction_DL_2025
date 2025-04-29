@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+import os
 from pathlib import Path
 from tqdm import tqdm
 
@@ -50,8 +50,8 @@ class Location:
         self.env_polygons = env_polygons
         self.static_objects = static_objects
         self.roi = roi
-        self.img = f'./data/BaseImages/{location_name}.png'
-        self.metadata = f'./data/CombinedData/{self.location_name}/metadata.json'
+        self.img = f'TrajectoryPrediction_DL_2025/code/data/BaseImages/{self.location_name}.png'
+        self.metadata = f'TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.location_name}/metadata.json'
         
         base = plt.imread(self.img)
         
@@ -111,10 +111,10 @@ class Location:
             DataFrame: Concatenated DataFrame containing data from all days.
         """
         # Read and combine data files
-        df1 = pd.read_csv(f'./data/Original/{self.location_name}/2023-05-23.csv', sep=';')
-        df2 = pd.read_csv(f'./data/Original/{self.location_name}/2023-05-24.csv', sep=';')
-        df3 = pd.read_csv(f'./data/Original/{self.location_name}/2023-05-25.csv', sep=';')
-        df4 = pd.read_csv(f'./data/Original/{self.location_name}/2023-05-26.csv', sep=';')
+        df1 = pd.read_csv(f'{self.location_name}/data/2023-05-23_00h_tracks.csv', sep=';')
+        df2 = pd.read_csv(f'{self.location_name}/data/2023-05-24_00h_tracks.csv', sep=';')
+        df3 = pd.read_csv(f'{self.location_name}/data/2023-05-25_00h_tracks.csv', sep=';')
+        df4 = pd.read_csv(f'{self.location_name}/data/2023-05-26_00h_tracks.csv', sep=';')
         
         df = pd.concat([df1, df2, df3, df4], ignore_index=True)
         del df1, df2, df3, df4
@@ -163,7 +163,7 @@ class Location:
         grouped['Type'] = grouped['Type'].astype('int')
 
         # Save the processed data
-        output_path = f'./data/CombinedData/{self.location_name}/data.csv'
+        output_path = f'TrajectoryPrediction_DL_2025/code/data/CombinedData/{self.location_name}/data.csv'
         grouped.to_csv(output_path, index=False)
 
         return grouped

@@ -129,95 +129,102 @@ roi_torpagatan = [
     ]
 
 
-if __name__=="__main__": 
-    # Check if GPU is available 
-    gpu = torch.cuda.is_available()
-    print("GPU Available: ", gpu)
-    # Apply deterministic on CUDA convoltion operations
-    torch.backends.cudnn.deterministic = True
-    # Disable benchmark mode
-    torch.backends.cudnn.benchmark = False
-    # Create a manual seed for testing
-    torch.manual_seed(42)
-    
-    epochs = 300
-    num_layers = 16
-    num_heads = 8
-    dropout = 0.3
-    learning_rate = 0.000015
-    src_len = 10
-    tgt_len = 40
-    batch_size = 32
-    hidden_size = 512
-    earlystopping = 30
-    
-    valhallavagen = Location(
-        min_x=Valhallavagen_X_min, 
-        max_x=Valhallavagen_X_max, 
-        min_y=Valhallavagen_Y_min, 
-        max_y=Valhallavagen_Y_max, 
-        location_name="Valhallavagen",
-        env_vectors=Valhallavagen_env_vectors,
-        env_polygons=valhallavagen_ENV,
-        static_objects=torpagatan_static_objs,
-        roi=roi_torpagatan
-        )
-    viz = Visualization(valhallavagen)
-    experiment_manager = ExperimentManager(
-        location=valhallavagen, 
-        visualization=viz, 
-        epochs=epochs, 
-        learning_rate=learning_rate, 
-        num_layers=num_layers, 
-        num_heads=num_heads, 
-        dropout=dropout,
-        src_len=src_len,
-        tgt_len=tgt_len,
-        batch_size=batch_size,
-        hidden_size=hidden_size,
-        earlystopping=earlystopping
-        )
-    
-    experiment_manager.experiment_base()
-    experiment_manager.experiment_transformer()
-    experiment_manager.experiment_star()
-    experiment_manager.experiment_saestar()
-    
-    del valhallavagen, viz, experiment_manager
-    gc.collect()
-    
-    torpagatan = Location(
-        min_x=Torpagatan_X_min, 
-        max_x=Torpagatan_X_max, 
-        min_y=Torpagatan_Y_min, 
-        max_y=Torpagatan_Y_max, 
-        location_name="Torpagatan",
-        env_vectors=Torpagatan_env_vectors,
-        env_polygons=torpagatan_ENV,
-        static_objects=torpagatan_static_objs,
-        roi=roi_torpagatan
-        )
-    viz = Visualization(torpagatan)
-    experiment_manager = ExperimentManager(
-        location=torpagatan, 
-        visualization=viz, 
-        epochs=epochs, 
-        learning_rate=learning_rate, 
-        num_layers=num_layers, 
-        num_heads=num_heads, 
-        dropout=dropout,
-        src_len=src_len,
-        tgt_len=tgt_len,
-        batch_size=batch_size,
-        hidden_size=hidden_size,
-        earlystopping=earlystopping
-        )
-    
-    experiment_manager.experiment_base()
-    experiment_manager.experiment_transformer()
-    experiment_manager.experiment_star()
-    experiment_manager.experiment_saestar()
-    
+#if __name__=="__main__": 
+# Check if GPU is available 
+gpu = torch.cuda.is_available()
+print("GPU Available: ", gpu)
+# Apply deterministic on CUDA convoltion operations
+torch.backends.cudnn.deterministic = True
+# Disable benchmark mode
+torch.backends.cudnn.benchmark = False
+# Create a manual seed for testing
+torch.manual_seed(42)
+
+epochs = 1
+num_layers = 16
+num_heads = 8
+dropout = 0.3
+learning_rate = 0.000015
+src_len = 10
+tgt_len = 40
+batch_size = 32
+hidden_size = 512
+earlystopping = 30
+
+print("Creating valhallavagen")
+valhallavagen = Location(
+    min_x=Valhallavagen_X_min, 
+    max_x=Valhallavagen_X_max, 
+    min_y=Valhallavagen_Y_min, 
+    max_y=Valhallavagen_Y_max, 
+    location_name="Valhallavagen",
+    env_vectors=Valhallavagen_env_vectors,
+    env_polygons=valhallavagen_ENV,
+    static_objects=torpagatan_static_objs,
+    roi=roi_torpagatan
+    )
+print("Visualization valhallavagen")
+viz = Visualization(valhallavagen)
+print("ExperimentManager valhallavagen")
+experiment_manager = ExperimentManager(
+    location=valhallavagen, 
+    visualization=viz, 
+    epochs=epochs, 
+    learning_rate=learning_rate, 
+    num_layers=num_layers, 
+    num_heads=num_heads, 
+    dropout=dropout,
+    src_len=src_len,
+    tgt_len=tgt_len,
+    batch_size=batch_size,
+    hidden_size=hidden_size,
+    earlystopping=earlystopping
+    )
+
+print("experiment_base valhallavagen")
+experiment_manager.experiment_base()
+print("experiment_transformer valhallavagen")
+experiment_manager.experiment_transformer()
+print("experiment_star valhallavagen")
+experiment_manager.experiment_star()
+print("experiment_saestar valhallavagen")
+experiment_manager.experiment_saestar()
+
+del valhallavagen, viz, experiment_manager
+gc.collect()
+
+# torpagatan = Location(
+#     min_x=Torpagatan_X_min, 
+#     max_x=Torpagatan_X_max, 
+#     min_y=Torpagatan_Y_min, 
+#     max_y=Torpagatan_Y_max, 
+#     location_name="Torpagatan",
+#     env_vectors=Torpagatan_env_vectors,
+#     env_polygons=torpagatan_ENV,
+#     static_objects=torpagatan_static_objs,
+#     roi=roi_torpagatan
+#     )
+# viz = Visualization(torpagatan)
+# experiment_manager = ExperimentManager(
+#     location=torpagatan, 
+#     visualization=viz, 
+#     epochs=epochs, 
+#     learning_rate=learning_rate, 
+#     num_layers=num_layers, 
+#     num_heads=num_heads, 
+#     dropout=dropout,
+#     src_len=src_len,
+#     tgt_len=tgt_len,
+#     batch_size=batch_size,
+#     hidden_size=hidden_size,
+#     earlystopping=earlystopping
+#     )
+
+# experiment_manager.experiment_base()
+# experiment_manager.experiment_transformer()
+# experiment_manager.experiment_star()
+# experiment_manager.experiment_saestar()
+
     
 
 
