@@ -5,6 +5,12 @@
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
 
+*.zip
+**/Original/
+output_*.txt
+slurm-*.out
+*.sh
+
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 

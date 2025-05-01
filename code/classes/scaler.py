@@ -47,7 +47,7 @@ class Scaler:
         # Flatten the data to 2D for scaling
         flat_data = np_data.reshape(shape[0] * shape[1], shape[2])
         # Clip the data to avoid extreme values that could distort scaling
-        clipped_data = np.clip(np.array(flat_data), -1e6, 1e6)
+        clipped_data = np.clip(np.array(flat_data, dtype=np.float32), -1e6, 1e6)
         # Fit and return the scaler on the clipped data
         return scaler.fit(clipped_data)
 
@@ -75,9 +75,9 @@ class Scaler:
         # Flatten the data into 2D for scaling
         data_flat = data.view(data.shape[0] * data.shape[1], data.shape[2])
         # Clip the data to avoid extreme values that could distort scaling
-        data_clipped = np.clip(np.array(data_flat.cpu()), -1e6, 1e6)
+        data_clipped = np.clip(np.array(data_flat.cpu(), dtype=np.float32), -1e6, 1e6)
         # Transform the data using the fitted scaler
-        data_scaled = torch.tensor(scaler.transform(data_clipped)).cuda()
+        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32).cuda()
         # Reshape the data back to its original shape
         reshaped_data = data_scaled.reshape(shape)
         return reshaped_data

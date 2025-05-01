@@ -128,6 +128,10 @@ roi_torpagatan = [
     {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
     ]
 
+#import os
+#print(f"cwd = {os.getcwd()}")
+#os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
+#print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__": 
     # Check if GPU is available 
@@ -159,8 +163,8 @@ if __name__=="__main__":
         location_name="Valhallavagen",
         env_vectors=Valhallavagen_env_vectors,
         env_polygons=valhallavagen_ENV,
-        static_objects=torpagatan_static_objs,
-        roi=roi_torpagatan
+        static_objects=valhallavagen_static_objs,
+        roi=roi_valhallavagen
         )
     viz = Visualization(valhallavagen)
     experiment_manager = ExperimentManager(
