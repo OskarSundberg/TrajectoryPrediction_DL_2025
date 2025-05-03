@@ -114,13 +114,13 @@ class ExperimentManager:
                 file = Path(f"./data/Datasets/{self.location.location_name}/{split_type}/{data_type}.pt")
                 
                 if not file.exists():  # If any required file is missing, return False.
-                    print(file)
+                    print(f"{file} does not exist")
                     return False
         
         # Cleanup and memory management
         del split_types, data_types
         gc.collect()
-        return False
+        return True
     
     def create_trajectory_dataset(self):
         """
@@ -411,7 +411,7 @@ class ExperimentManager:
         val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True)
         test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True)
         df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
-        num_types = 4 + len(df_env['ID'].unique())
+        num_types = df_env['Type'].max()
         graph_dims = len(train['distance'][0, 0, :])
         train_dataset = SAESTARDataset(train)
         val_dataset = SAESTARDataset(val)

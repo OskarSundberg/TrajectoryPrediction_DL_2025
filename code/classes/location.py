@@ -119,7 +119,7 @@ class Location:
         df = pd.concat([df1, df2, df3, df4], ignore_index=True)
         del df1, df2, df3, df4
         gc.collect()
-        return df.head(1000)
+        return df
 
     def create_dataset(self):
         """

@@ -1,4 +1,0 @@
-The number of pedestrian: 3
-The number of bicycles: 0
-The number of light vehicles: 0
-The number of heavy vehicles: 0
