@@ -1,5 +1,6 @@
 import torch
 import gc
+import os
 
 from classes.location import Location
 from classes.visualization import Visualization
@@ -140,13 +141,12 @@ def remove_directory_contents(directory_path):
                 os.remove(item_path)
 
 # needed for when debugging on cpu
-#import os
 #print(f"cwd = {os.getcwd()}")
 #os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
 #print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
-    if True:
+    if False:
         remove_directory_contents("./data/CombinedData/Torpagatan")
         remove_directory_contents("./data/CombinedData/Valhallavagen")
         remove_directory_contents("./data/Datasets/Torpagatan/Test")
