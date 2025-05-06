@@ -17,6 +17,9 @@ from classes.Models.transformer_model import Transformer
 from classes.Models.star_model import STAR
 from classes.Models.saestar_model import SAESTAR
 
+import torch
+from torchviz import make_dot
+
 class Experiment:
     """
     A class to handle the training and evaluation of various models for time series prediction.
