@@ -8,6 +8,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from torch.cuda.amp import autocast
 
 from classes.scaler import Scaler
 
@@ -15,6 +16,9 @@ from classes.Models.base_model import TransformerBase
 from classes.Models.transformer_model import Transformer
 from classes.Models.star_model import STAR
 from classes.Models.saestar_model import SAESTAR
+
+import torch
+from torchviz import make_dot
 
 class Experiment:
     """
@@ -252,7 +256,8 @@ class Experiment:
                 tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                 inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                with autocast(dtype=torch.float16):
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
             
             elif self.model_type == 'Transformer':
                 inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
@@ -261,7 +266,8 @@ class Experiment:
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
-                outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                with autocast(dtype=torch.float16):
+                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
             
             elif self.model_type in ['STAR', 'SAESTAR']:
                 inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
@@ -270,7 +276,8 @@ class Experiment:
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 distances = self.scaler.scale(distances, "dist")
                 inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
-                outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                with autocast(dtype=torch.float16):
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
 
             # Compute loss, backpropagate, and optimize
             loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))

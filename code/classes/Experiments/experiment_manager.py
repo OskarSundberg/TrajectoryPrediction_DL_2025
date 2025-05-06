@@ -111,16 +111,16 @@ class ExperimentManager:
             
         for split_type in split_types:
             for data_type in data_types:
-                file = Path(f"./data/Dataset/{self.location.location_name}/{split_type}/{data_type}.pt")
+                file = Path(f"./data/Datasets/{self.location.location_name}/{split_type}/{data_type}.pt")
                 
-                if file.exists():  # If any required file is missing, return False.
-                    print(file)
-                    return True
+                if not file.exists():  # If any required file is missing, return False.
+                    print(f"{file} does not exist")
+                    return False
         
         # Cleanup and memory management
         del split_types, data_types
         gc.collect()
-        return False
+        return True
     
     def create_trajectory_dataset(self):
         """
@@ -269,16 +269,16 @@ class ExperimentManager:
             - Deletes tensor objects and triggers garbage collection to free memory.
         """
         print(f"Saving {data_type} for Location: {self.location.location_name}")
-        src = np.array([sample['src'] for sample in data])
-        tgt = np.array([sample['tgt'] for sample in data])
-        dist = np.array([sample['dist'] for sample in data])
-        dist_type = np.array([sample['dist_type'] for sample in data])
-        
+        src = np.array([sample['src'] for sample in data], dtype=np.float64)
+        tgt = np.array([sample['tgt'] for sample in data], dtype=np.float64)
+        dist = np.array([sample['dist'] for sample in data], dtype=np.float64)
+        dist_type = np.array([sample['dist_type'] for sample in data], dtype=np.float64)
+
         # Extracting data components and converting them into tensors
-        src = torch.tensor(src)
-        tgt = torch.tensor(tgt)
-        dist = torch.tensor(dist)
-        dist_type = torch.tensor(dist_type)
+        src = torch.tensor(src, dtype=torch.float64).to(torch.float32)
+        tgt = torch.tensor(tgt, dtype=torch.float64).to(torch.float32)
+        dist = torch.tensor(dist, dtype=torch.float64).to(torch.float32)
+        dist_type = torch.tensor(dist_type, dtype=torch.float64).to(torch.float32)
         
         # Saving tensors to disk
         torch.save(src, f"./data/Datasets/{self.location.location_name}/{data_type}/src.pt")
@@ -305,13 +305,13 @@ class ExperimentManager:
         print(f"Loading {data_type} for model {model_name} at Location: {self.location.location_name}")
         
         # Loading mandatory tensors
-        src = torch.load(f"./data/Dataset/{self.location.location_name}/{data_type}/src.pt", weights_only=True)
-        tgt = torch.load(f"./data/Dataset/{self.location.location_name}/{data_type}/tgt.pt", weights_only=True)
+        src = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/src.pt", weights_only=True)
+        tgt = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/tgt.pt", weights_only=True)
         
         if spatial:
             # Loading additional spatial data if requested
-            dist = torch.load(f"./data/Dataset/{self.location.location_name}/{data_type}/dist.pt", weights_only=True)
-            d_type = torch.load(f"./data/Dataset/{self.location.location_name}/{data_type}/dist_type.pt", weights_only=True)
+            dist = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist.pt", weights_only=True)
+            d_type = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_type.pt", weights_only=True)
             return {'src': src, 'tgt': tgt, 'distance': dist, 'type': d_type}
         else:
             return {'src': src, 'tgt': tgt}
@@ -411,7 +411,7 @@ class ExperimentManager:
         val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True)
         test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True)
         df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
-        num_types = 4 + len(df_env['ID'].unique())
+        num_types = df_env['Type'].max()
         graph_dims = len(train['distance'][0, 0, :])
         train_dataset = SAESTARDataset(train)
         val_dataset = SAESTARDataset(val)

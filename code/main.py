@@ -1,5 +1,6 @@
 import torch
 import gc
+import os
 
 from classes.location import Location
 from classes.visualization import Visualization
@@ -128,8 +129,35 @@ roi_torpagatan = [
     {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
     ]
 
+#def remove_directory_contents(directory_path):
+#    # Ensure the directory exists
+#    if os.path.exists(directory_path) and os.path.isdir(directory_path):
+#        # Iterate over all files and directories in the specified directory
+#        for item in os.listdir(directory_path):
+#            item_path = os.path.join(directory_path, item)
+#            # Remove files and directories
+#            if os.path.isfile(item_path):
+#                print(f"Deleting {item_path}")
+#                os.remove(item_path)
 
-if __name__=="__main__": 
+# needed for when debugging on cpu
+print(f"cwd = {os.getcwd()}")
+os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
+print(f"cwd = {os.getcwd()}")
+
+if __name__=="__main__":
+    #if False:
+    #    remove_directory_contents("./data/CombinedData/Torpagatan")
+    #    remove_directory_contents("./data/CombinedData/Valhallavagen")
+    #
+    #    remove_directory_contents("./data/Datasets/Torpagatan/Test")
+    #    remove_directory_contents("./data/Datasets/Torpagatan/Train")
+    #    remove_directory_contents("./data/Datasets/Torpagatan/Val")
+    #
+    #    remove_directory_contents("./data/Datasets/Valhallavagen/Test")
+    #    remove_directory_contents("./data/Datasets/Valhallavagen/Train")
+    #    remove_directory_contents("./data/Datasets/Valhallavagen/Val")
+
     # Check if GPU is available 
     gpu = torch.cuda.is_available()
     print("GPU Available: ", gpu)
@@ -159,8 +187,8 @@ if __name__=="__main__":
         location_name="Valhallavagen",
         env_vectors=Valhallavagen_env_vectors,
         env_polygons=valhallavagen_ENV,
-        static_objects=torpagatan_static_objs,
-        roi=roi_torpagatan
+        static_objects=valhallavagen_static_objs,
+        roi=roi_valhallavagen
         )
     viz = Visualization(valhallavagen)
     experiment_manager = ExperimentManager(
@@ -179,8 +207,8 @@ if __name__=="__main__":
         )
     
     experiment_manager.experiment_base()
-    experiment_manager.experiment_transformer()
-    experiment_manager.experiment_star()
+    #experiment_manager.experiment_transformer()
+    #experiment_manager.experiment_star()
     experiment_manager.experiment_saestar()
     
     del valhallavagen, viz, experiment_manager
@@ -213,12 +241,7 @@ if __name__=="__main__":
         earlystopping=earlystopping
         )
     
-    experiment_manager.experiment_base()
-    experiment_manager.experiment_transformer()
-    experiment_manager.experiment_star()
-    experiment_manager.experiment_saestar()
-    
-    
-
-
-
+    #experiment_manager.experiment_base()
+    #experiment_manager.experiment_transformer()
+    #experiment_manager.experiment_star()
+    #experiment_manager.experiment_saestar()
