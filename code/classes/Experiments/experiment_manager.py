@@ -427,6 +427,37 @@ class ExperimentManager:
         # Cleaning up memory
         del scaler, train, val, test, train_dataloader, test_dataloader, val_dataloader
         gc.collect()
+            
+    def experiment_seastar(self):
+        """
+        Runs the SEASTAR experiment, handling data preparation and experiment execution.
+        """
+        model_name = 'SEASTAR'
+        print("SEASTAR Experiment Starting")
+        print("-" * 30)
+        
+        # Loading and preparing data
+        train = self.load_tensors(model_name=model_name, data_type="Train", spatial=True)
+        val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True)
+        test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True)
+        df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
+        num_types = df_env['Type'].max()
+        graph_dims = len(train['distance'][0, 0, :])
+        train_dataset = SAESTARDataset(train)
+        val_dataset = SAESTARDataset(val)
+        test_dataset = SAESTARDataset(test)
+        
+        # Scaling data and creating DataLoaders
+        scaler = Scaler(train, model_name, True)
+        train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
+        
+        # Running the experiment
+        self.run_experiment(model_name, scaler, train_dataloader, val_dataloader, test_dataloader, num_types=num_types, graph_dims=graph_dims)
+        
+        # Cleaning up memory
+        del scaler, train, val, test, train_dataloader, test_dataloader, val_dataloader
+        gc.collect()
+    
     
     def run_experiment(self, model_name, scaler, train, val, test, num_types, graph_dims):
         """

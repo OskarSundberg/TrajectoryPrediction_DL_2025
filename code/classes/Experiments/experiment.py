@@ -228,6 +228,29 @@ class Experiment:
         type_dims = self.generate_embedded_dim(total / 2, graph_dims) 
         return SAESTAR(src_dims, dist_dims, type_dims, 4, num_types, hidden, layers, heads, src, tgt, dropout)
     
+
+    def seastar_model(self, src, tgt, graph_dims, num_types, hidden, layers, heads, dropout) -> nn.Module:
+        """
+        Creates and returns a SEASTAR model.
+        
+        Args:
+            src (int): The source sequence length.
+            tgt (int): The target sequence length.
+            graph_dims (int): The graph dimensions.
+            num_types (int): The number of types in the model.
+            hidden (int): The hidden layer size.
+            layers (int): The number of layers in the model.
+            heads (int): The number of attention heads.
+            dropout (float): The dropout rate.
+        
+        Returns:
+            nn.Module: The instantiated SAESTAR model.
+        """
+        src_dims = [94, 94, 64, 4]
+        total = sum(src_dims)
+        dist_dims = self.generate_embedded_dim(total / 2, graph_dims) 
+        type_dims = self.generate_embedded_dim(total / 2, graph_dims) 
+        return SAESTAR(src_dims, dist_dims, type_dims, 4, num_types, hidden, layers, heads, src, tgt, dropout)
     def train(self, train_loader: DataLoader, epoch: int) -> float:
         """
         Trains the model for one epoch using the provided DataLoader.
