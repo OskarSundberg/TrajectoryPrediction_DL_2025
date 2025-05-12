@@ -86,6 +86,8 @@ class Experiment:
             self.model = self.star_model(src_len, tgt_len, graph_dims, hidden_size, layers, heads, dropout)
         if model_name == "SAESTAR":
             self.model = self.saestar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout)
+        if model_name == "SEASTAR":
+            self.model = self.seastar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout) 
         
         # Initialize the optimizer
         self.optimizer = Adam(self.model.parameters(), lr=lr)
@@ -292,7 +294,7 @@ class Experiment:
                 with autocast(dtype=torch.float16):
                     outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
             
-            elif self.model_type in ['STAR', 'SAESTAR']:
+            elif self.model_type in ['STAR', 'SAESTAR', 'SEASTAR']:
                 inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
@@ -349,7 +351,7 @@ class Experiment:
                     inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
                     outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
                 
-                elif self.model_type in ['STAR', 'SAESTAR']:
+                elif self.model_type in ['STAR', 'SAESTAR', 'SEASTAR']:
                     inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
@@ -548,7 +550,7 @@ class Experiment:
                     inputs = torch.cat((scaled_inputs, src[:, :, 4:].cuda()), dim=2)
                     outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
 
-                elif self.model_type == 'STAR' or self.model_type == 'SAESTAR':
+                elif self.model_type == 'STAR' or self.model_type == 'SAESTAR' or self.model_type == 'SEASTAR':
                     src, tgt, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")

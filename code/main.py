@@ -141,8 +141,8 @@ roi_torpagatan = [
 #                os.remove(item_path)
 
 # needed for when debugging on cpu
-print(f"cwd = {os.getcwd()}")
-os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
+#print(f"cwd = {os.getcwd()}")
+os.chdir("/home/suos21hj/viscando/TrajectoryPrediction_DL_2025/code")
 print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
@@ -168,16 +168,16 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 300
+    epochs = 3
     num_layers = 16
     num_heads = 8
-    dropout = 0.3
-    learning_rate = 0.000015
+    dropout = 0.6
+    learning_rate = 0.0015
     src_len = 10
     tgt_len = 40
     batch_size = 32
     hidden_size = 512
-    earlystopping = 30
+    earlystopping = 10
     
     valhallavagen = Location(
         min_x=Valhallavagen_X_min, 
@@ -206,11 +206,11 @@ if __name__=="__main__":
         earlystopping=earlystopping
         )
     
-    experiment_manager.experiment_base()
+    #pyexperiment_manager.experiment_base()
     #experiment_manager.experiment_transformer()
     #experiment_manager.experiment_star()
-    experiment_manager.experiment_saestar()
-    
+    #experiment_manager.experiment_saestar()
+    experiment_manager.experiment_seastar()
     del valhallavagen, viz, experiment_manager
     gc.collect()
     
@@ -245,3 +245,4 @@ if __name__=="__main__":
     #experiment_manager.experiment_transformer()
     #experiment_manager.experiment_star()
     #experiment_manager.experiment_saestar()
+    #experiment_manager.experiment_seastar()

@@ -387,6 +387,7 @@ class ExperimentManager:
         val_dataset = STARDataset(val, self.location.num_agents)
         test_dataset = STARDataset(test, self.location.num_agents)
         
+        print(train_dataset[0])
         # Scaling data and creating DataLoaders
         scaler = Scaler(train, model_name, True, graph_dims)
         train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
@@ -414,6 +415,9 @@ class ExperimentManager:
         num_types = df_env['Type'].max()
         graph_dims = len(train['distance'][0, 0, :])
         train_dataset = SAESTARDataset(train)
+        ### remove later
+        #np.savetxt("train_data.txt", train_dataset[0], fmt='%s')
+        print(train_dataset[1])
         val_dataset = SAESTARDataset(val)
         test_dataset = SAESTARDataset(test)
         

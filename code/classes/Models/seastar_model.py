@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from classes.Embeddings.saestar_embedding import SAESTAREmbedding
+from classes.Embeddings.seastar_embedding import SEASTAREmbedding
 from classes.Models.mlp_decoder import MLPDecoder
 
   
@@ -125,7 +125,7 @@ class SEASTAR(torch.nn.Module):
 
 
         # Fuse spatial, temporal, and environmental features.
-        fusion_feat = torch.cat((temporal_input_embedded, spatial_input_embedded), dim=2).cuda()
+        fusion_feat = torch.cat((temporal_input_embedded,environmental_input_embedded, spatial_input_embedded), dim=2).cuda()
         fusion_feat = self.fusion_layer(fusion_feat).cuda()  # Combine features using the fusion layer.
 
         # Process the fused features through secondary encoders.
@@ -143,9 +143,11 @@ class SEASTAR(torch.nn.Module):
         output2 = self.decoder2(temporal_output).cuda()
         output3 = self.decoder3(temporal_output).cuda()
         output4 = self.decoder4(temporal_output).cuda()
+        output5 = self.decoder5(temporal_output).cuda()
+        output6 = self.decoder6(temporal_output).cuda()
 
         # Concatenate the outputs from all decoders.
-        output = torch.cat([output1, output2, output3, output4], dim=1)
+        output = torch.cat([output1, output2, output3, output4, output5, output6], dim=1)
         output = output.reshape(src.shape[0], self.tgt_len, self.output_size).cuda()
 
         return output.cuda()
