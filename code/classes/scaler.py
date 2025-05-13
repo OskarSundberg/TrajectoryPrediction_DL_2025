@@ -17,6 +17,8 @@ class Scaler:
         train_data (dict): A dictionary containing training data with keys 'src', 'tgt', and 'distance'.
         spatial (bool): If True, a scaler for distance data is also created (default: False).
         """
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.spatial = False  # Default spatial scaling is turned off
         # Create and fit the scaler for the source data (first 3 columns of 'src')
         self.src_scaler = self.create_scaler(train_data['src'][:, :, :3])
@@ -27,6 +29,10 @@ class Scaler:
             if model_name == "STAR":
                 self.dist_scaler = self.create_scaler(train_data['distance'][:, :, :size])
             else:
+                print(train_data['distance'][:, :, :size].shape)
+                print(size)
+                print("nös")
+                print(train_data['distance'].shape)
                 self.dist_scaler = self.create_scaler(train_data['distance'])
     def create_scaler(self, data):
         """
@@ -62,6 +68,7 @@ class Scaler:
         Returns:
         torch.Tensor: Scaled data in the original shape.
         """
+        
         # Select the appropriate scaler based on the input type
         if scaler_type == "src":
             scaler = self.src_scaler
@@ -77,7 +84,7 @@ class Scaler:
         # Clip the data to avoid extreme values that could distort scaling
         data_clipped = np.clip(np.array(data_flat.cpu(), dtype=np.float32), -1e6, 1e6)
         # Transform the data using the fitted scaler
-        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32).cuda()
+        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32).to(self.device)
         # Reshape the data back to its original shape
         reshaped_data = data_scaled.reshape(shape)
         return reshaped_data
@@ -104,7 +111,7 @@ class Scaler:
         # Flatten the data for inverse transformation
         data_flatten = data.reshape(data.shape[0] * data.shape[1], data.shape[2])
         # Inverse transform the data to the original scale
-        data_unscaled = torch.tensor(scaler.inverse_transform(np.array(data_flatten.cpu()))).cuda()
+        data_unscaled = torch.tensor(scaler.inverse_transform(np.array(data_flatten.cpu()))).to(self.device)
         # Reshape the unscaled data back to the original shape
         return data_unscaled.reshape(original_shape)
         

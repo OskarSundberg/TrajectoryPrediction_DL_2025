@@ -159,8 +159,9 @@ if __name__=="__main__":
     #    remove_directory_contents("./data/Datasets/Valhallavagen/Val")
 
     # Check if GPU is available 
-    gpu = torch.cuda.is_available()
-    print("GPU Available: ", gpu)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
     # Apply deterministic on CUDA convoltion operations
     torch.backends.cudnn.deterministic = True
     # Disable benchmark mode
@@ -168,14 +169,14 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 3
+    epochs = 100
     num_layers = 16
     num_heads = 8
     dropout = 0.6
-    learning_rate = 0.0015
+    learning_rate = 0.00015
     src_len = 10
     tgt_len = 40
-    batch_size = 32
+    batch_size = 128
     hidden_size = 512
     earlystopping = 10
     
@@ -210,7 +211,7 @@ if __name__=="__main__":
     #experiment_manager.experiment_transformer()
     #experiment_manager.experiment_star()
     #experiment_manager.experiment_saestar()
-    experiment_manager.experiment_seastar()
+    experiment_manager.experiment_seastar(device=device)
     del valhallavagen, viz, experiment_manager
     gc.collect()
     

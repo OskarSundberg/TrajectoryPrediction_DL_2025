@@ -22,6 +22,7 @@ from classes.Datasets.trajectory_dataset import TrajectoryDataset
 from classes.Datasets.transformer_dataset import TransformerDataset
 from classes.Datasets.star_dataset import STARDataset
 from classes.Datasets.saestar_dataset import SAESTARDataset
+from classes.Datasets.seastar_dataset import SEASTARDataset
 from classes.Experiments.experiment import Experiment
 
 class ExperimentManager:
@@ -432,7 +433,7 @@ class ExperimentManager:
         del scaler, train, val, test, train_dataloader, test_dataloader, val_dataloader
         gc.collect()
             
-    def experiment_seastar(self):
+    def experiment_seastar(self, device):
         """
         Runs the SEASTAR experiment, handling data preparation and experiment execution.
         """
@@ -446,15 +447,19 @@ class ExperimentManager:
         test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True)
         df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
         num_types = df_env['Type'].max()
+        print(num_types)
+        print("blalbla")
+        #num_types = 4 + len(df_env['ID'].unique())
+        #print(num_types)
         graph_dims = len(train['distance'][0, 0, :])
-        train_dataset = SAESTARDataset(train)
-        val_dataset = SAESTARDataset(val)
-        test_dataset = SAESTARDataset(test)
+        train_dataset = SEASTARDataset(train)
+        val_dataset = SEASTARDataset(val)
+        test_dataset = SEASTARDataset(test)
         
         # Scaling data and creating DataLoaders
         scaler = Scaler(train, model_name, True)
         train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
-        
+        print("blalbl")
         # Running the experiment
         self.run_experiment(model_name, scaler, train_dataloader, val_dataloader, test_dataloader, num_types=num_types, graph_dims=graph_dims)
         
