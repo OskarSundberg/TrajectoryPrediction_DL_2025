@@ -43,12 +43,14 @@ class SEASTARDataset(Dataset):
                 - 'distance': Distance tensor.
                 - 'type': Type tensor.
         """
-        src, tgt, distance, dist_type = self.data['src'], self.data['tgt'], self.data['distance'], self.data['type']
+        src, tgt, distance, dist_type, dist_agents, dist_env = self.data['src'], self.data['tgt'], self.data['distance'], self.data['type'], self.data['dist_agents'], self.data['dist_env']
         data = {
             "src": src[idx, :, :].type(torch.float32),
             "tgt": tgt[idx, :, :].type(torch.float32),
             "distance": distance[idx, :, :].type(torch.float32),
-            "type": dist_type[idx, :, :].type(torch.long)
+            "type": dist_type[idx, :, :].type(torch.long),
+            "dist_agents": dist_agents[idx, :, :].type(torch.float32),
+            "dist_env": dist_env[idx, :, :].type(torch.long)
         }
         return data
     

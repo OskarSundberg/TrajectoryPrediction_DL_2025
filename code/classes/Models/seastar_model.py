@@ -91,7 +91,7 @@ class SEASTAR(torch.nn.Module):
         self.relu1 = nn.ReLU()
         self.relu2 = nn.ReLU()
 
-    def forward(self, src, dist, type_env, src_mask=None, dist_key_padding_mask=None):
+    def forward(self, src, dist, type_env, env_dist, src_mask=None, dist_key_padding_mask=None):
         """
         Forward pass through the SEASTAR model.
 
@@ -105,10 +105,12 @@ class SEASTAR(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor of shape (batch_size, tgt_len, output_size).
         """
-        print(src)
-        print("Hello_2")
-        print(dist)
-        print("hello_3")
+        print("_=======================_")
+        print(src.shape)
+        print(dist.shape)
+        print(type_env.shape)
+        print(env_dist.shape)
+        print("_=======================_")
         # Embed the source sequence for temporal encoding.
         src_temporal_embedded = self.embedding_layer(src, is_src=True).to(self.device)
         src_temporal_embedded = self.dropout(src_temporal_embedded).to(self.device)  # Apply dropout.
@@ -120,7 +122,7 @@ class SEASTAR(torch.nn.Module):
         src_dist_embedded = self.relu1(src_dist_embedded).to(self.device)  # Apply ReLU activation.
    
         # Embed the env sequence for environmental encoding.
-        src_env_embedded = self.embedding_layer(type_env, is_src=False, src_tensor=src, type_tensor=type_env).to(self.device)
+        src_env_embedded = self.embedding_layer(env_dist, is_src=False, src_tensor=src, type_tensor=type_env).to(self.device)
         src_env_embedded = self.dropout2(src_env_embedded).to(self.device)  # Apply dropout.
         src_env_embedded = self.relu2(src_env_embedded).to(self.device)  # Apply ReLU activation.
 

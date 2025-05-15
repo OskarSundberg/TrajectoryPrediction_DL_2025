@@ -62,7 +62,11 @@ class SEASTAREmbedding(nn.Module):
             nn.Embedding(num_types_dist + num_types , embedding_dim).to(self.device)
             for embedding_dim in type_dims[:]
         ])
-
+        print("_______________")
+        print(num_types_dist)
+        print(num_types)
+        print(src_dims[-1])
+        print("_______________")
         # Embedding layer for the last categorical feature of the source sequence
         self.embedding_layer_src = nn.Embedding(num_types, src_dims[-1]).to(self.device)
 
@@ -180,6 +184,10 @@ class SEASTAREmbedding(nn.Module):
 
             embedded_tensor = torch.zeros(batch_size, seq_length, self.size).to(self.device)
             start_index = 0
+            print(input_tensor.shape)
+            print(len(list(zip(self.linear_layers_distance, self.type_layers_distance))))
+            print(len(self.type_layers_distance))
+            print(len(self.linear_layers_distance))
 
             for i, (linear_layer, embedding_layer) in enumerate(zip(self.linear_layers_distance, self.type_layers_distance)):
                 

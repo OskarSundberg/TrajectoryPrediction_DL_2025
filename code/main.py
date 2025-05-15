@@ -29,7 +29,6 @@ valhallavagen_ENV = {
         'Lane', 'Lane', 'Lane', 'Lane', 
         'SideWalk', 'SideWalk', 'SideWalk', 'SideWalk',
         'PreCrosswalk', 'PreCrosswalk', 'CrossWalk', 
-        
         ],
     'Top_Left': [
         (225, 2), (289, 7), (174, 694), (227, 705), 
@@ -129,7 +128,7 @@ roi_torpagatan = [
     {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
     ]
 
-#def remove_directory_contents(directory_path):
+# def remove_directory_contents(directory_path):
 #    # Ensure the directory exists
 #    if os.path.exists(directory_path) and os.path.isdir(directory_path):
 #        # Iterate over all files and directories in the specified directory
@@ -146,17 +145,17 @@ os.chdir("/home/suos21hj/viscando/TrajectoryPrediction_DL_2025/code")
 print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
-    #if False:
-    #    remove_directory_contents("./data/CombinedData/Torpagatan")
-    #    remove_directory_contents("./data/CombinedData/Valhallavagen")
-    #
-    #    remove_directory_contents("./data/Datasets/Torpagatan/Test")
-    #    remove_directory_contents("./data/Datasets/Torpagatan/Train")
-    #    remove_directory_contents("./data/Datasets/Torpagatan/Val")
-    #
-    #    remove_directory_contents("./data/Datasets/Valhallavagen/Test")
-    #    remove_directory_contents("./data/Datasets/Valhallavagen/Train")
-    #    remove_directory_contents("./data/Datasets/Valhallavagen/Val")
+    if False:
+       remove_directory_contents("./data/CombinedData/Torpagatan")
+       remove_directory_contents("./data/CombinedData/Valhallavagen")
+    
+       remove_directory_contents("./data/Datasets/Torpagatan/Test")
+       remove_directory_contents("./data/Datasets/Torpagatan/Train")
+       remove_directory_contents("./data/Datasets/Torpagatan/Val")
+    
+       remove_directory_contents("./data/Datasets/Valhallavagen/Test")
+       remove_directory_contents("./data/Datasets/Valhallavagen/Train")
+       remove_directory_contents("./data/Datasets/Valhallavagen/Val")
 
     # Check if GPU is available 
 
@@ -169,9 +168,9 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 100
-    num_layers = 16
-    num_heads = 8
+    epochs = 4
+    num_layers = 8
+    num_heads = 4
     dropout = 0.6
     learning_rate = 0.00015
     src_len = 10
@@ -179,6 +178,7 @@ if __name__=="__main__":
     batch_size = 128
     hidden_size = 512
     earlystopping = 10
+
     
     valhallavagen = Location(
         min_x=Valhallavagen_X_min, 
@@ -215,32 +215,32 @@ if __name__=="__main__":
     del valhallavagen, viz, experiment_manager
     gc.collect()
     
-    torpagatan = Location(
-        min_x=Torpagatan_X_min, 
-        max_x=Torpagatan_X_max, 
-        min_y=Torpagatan_Y_min, 
-        max_y=Torpagatan_Y_max, 
-        location_name="Torpagatan",
-        env_vectors=Torpagatan_env_vectors,
-        env_polygons=torpagatan_ENV,
-        static_objects=torpagatan_static_objs,
-        roi=roi_torpagatan
-        )
-    viz = Visualization(torpagatan)
-    experiment_manager = ExperimentManager(
-        location=torpagatan, 
-        visualization=viz, 
-        epochs=epochs, 
-        learning_rate=learning_rate, 
-        num_layers=num_layers, 
-        num_heads=num_heads, 
-        dropout=dropout,
-        src_len=src_len,
-        tgt_len=tgt_len,
-        batch_size=batch_size,
-        hidden_size=hidden_size,
-        earlystopping=earlystopping
-        )
+    # torpagatan = Location(
+    #     min_x=Torpagatan_X_min, 
+    #     max_x=Torpagatan_X_max, 
+    #     min_y=Torpagatan_Y_min, 
+    #     max_y=Torpagatan_Y_max, 
+    #     location_name="Torpagatan",
+    #     env_vectors=Torpagatan_env_vectors,
+    #     env_polygons=torpagatan_ENV,
+    #     static_objects=torpagatan_static_objs,
+    #     roi=roi_torpagatan
+    #     )
+    # viz = Visualization(torpagatan)
+    # experiment_manager = ExperimentManager(
+    #     location=torpagatan, 
+    #     visualization=viz, 
+    #     epochs=epochs, 
+    #     learning_rate=learning_rate, 
+    #     num_layers=num_layers, 
+    #     num_heads=num_heads, 
+    #     dropout=dropout,
+    #     src_len=src_len,
+    #     tgt_len=tgt_len,
+    #     batch_size=batch_size,
+    #     hidden_size=hidden_size,
+    #     earlystopping=earlystopping
+    #     )
     
     #experiment_manager.experiment_base()
     #experiment_manager.experiment_transformer()

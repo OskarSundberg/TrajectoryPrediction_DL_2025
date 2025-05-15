@@ -301,7 +301,7 @@ class Experiment:
                 with autocast(dtype=torch.float16):
                     outputs = self.model(inputs, targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
             
-            elif self.model_type in ['STAR', 'SAESTAR', 'SEASTAR']:
+            elif self.model_type in ['STAR', 'SAESTAR']:
                 inputs, targets, distances, distance_types = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long() 
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
@@ -310,6 +310,17 @@ class Experiment:
                 inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                 with autocast(dtype=torch.float16):
                     outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.to(self.device))
+            elif self.model_type in ['SEASTAR']:
+                inputs, targets, distances, distance_types, dist_agents, dist_env = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long(),  batch['dist_agents'].to(self.device).long(), batch['dist_env'].to(self.device).long()  
+                src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
+                scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
+                targets = self.scaler.scale(targets[:, :, :2], "tgt")
+                distances = self.scaler.scale(dist_agents, "agent_dist")
+                dist_env = self.scaler.scale(dist_env, "env_dist")
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
+                with autocast(dtype=torch.float16):
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
+
 
             # Compute loss, backpropagate, and optimize
             print(outputs.shape)
@@ -363,7 +374,7 @@ class Experiment:
                     inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                     outputs = self.model(inputs, targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
                 
-                elif self.model_type in ['STAR', 'SAESTAR', 'SEASTAR']:
+                elif self.model_type in ['STAR', 'SAESTAR']:
                     inputs, targets, distances, distance_types = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device), batch['type'].to(self.device)
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
@@ -371,6 +382,17 @@ class Experiment:
                     distances = self.scaler.scale(distances, "dist")
                     inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                     outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.to(self.device))
+                elif self.model_type in ['SEASTAR']:
+                    inputs, targets, distances, distance_types, dist_agents, dist_env = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long(),  batch['dist_agents'].to(self.device).long(), batch['dist_env'].to(self.device).long()  
+                    src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
+                    scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
+                    targets = self.scaler.scale(targets[:, :, :2], "tgt")
+                    distances = self.scaler.scale(dist_agents, "agent_dist")
+                    dist_env = self.scaler.scale(dist_env, "env_dist")
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
+                    with autocast(dtype=torch.float16):
+                        outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
+
 
                 # Compute loss
                 loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
@@ -562,7 +584,7 @@ class Experiment:
                     inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
                     outputs = self.model(inputs, targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
 
-                elif self.model_type == 'STAR' or self.model_type == 'SAESTAR' or self.model_type == 'SEASTAR':
+                elif self.model_type == 'STAR' or self.model_type == 'SAESTAR':
                     src, tgt, distances, distance_types = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device), batch['type'].to(self.device)
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
@@ -570,7 +592,17 @@ class Experiment:
                     distances = self.scaler.scale(distances, "dist")
                     inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
                     outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.to(self.device))
+                elif self.model_type == 'SEASTAR':
+                    src, tgt, distances, distance_types, dist_agents, dist_env = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long(),  batch['dist_agents'].to(self.device).long(), batch['dist_env'].to(self.device).long()
+                    src_mask = self.create_mask(src.shape[0], src.shape[1])
+                    scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
+                    targets = self.scaler.scale(tgt[:, :, :2], "tgt")
+                    distances = self.scaler.scale(dist_agents, "agents_dist")
+                    dist_env = self.scaler.scale(dist_env, "env_dist")
+                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
 
+    
                 # Unscale the model outputs to original values
                 new_outputs = self.scaler.unscale(outputs, "tgt", tgt[:, :, :2].shape)
                 

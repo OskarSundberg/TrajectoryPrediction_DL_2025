@@ -274,24 +274,30 @@ class ExperimentManager:
         tgt = np.array([sample['tgt'] for sample in data], dtype=np.float64)
         dist = np.array([sample['dist'] for sample in data], dtype=np.float64)
         dist_type = np.array([sample['dist_type'] for sample in data], dtype=np.float64)
+        dist_agents = np.array([sample['dist_agents'] for sample in data], dtype=np.float64)
+        dist_env = np.array([sample['dist_env'] for sample in data], dtype=np.float64)
 
         # Extracting data components and converting them into tensors
         src = torch.tensor(src, dtype=torch.float64).to(torch.float32)
         tgt = torch.tensor(tgt, dtype=torch.float64).to(torch.float32)
         dist = torch.tensor(dist, dtype=torch.float64).to(torch.float32)
         dist_type = torch.tensor(dist_type, dtype=torch.float64).to(torch.float32)
-        
+        dist_agents = torch.tensor(dist_agents, dtype=torch.float64).to(torch.float32)
+        dist_env = torch.tensor(dist_env, dtype=torch.float64).to(torch.float32)
         # Saving tensors to disk
         torch.save(src, f"./data/Datasets/{self.location.location_name}/{data_type}/src.pt")
         torch.save(tgt, f"./data/Datasets/{self.location.location_name}/{data_type}/tgt.pt")
         torch.save(dist, f"./data/Datasets/{self.location.location_name}/{data_type}/dist.pt")
         torch.save(dist_type, f"./data/Datasets/{self.location.location_name}/{data_type}/dist_type.pt")
+        torch.save(dist_env, f"./data/Datasets/{self.location.location_name}/{data_type}/dist_env.pt")
+        torch.save(dist_agents, f"./data/Datasets/{self.location.location_name}/{data_type}/dist_agents.pt")
+        
         
         # Freeing up memory
         del src, tgt, dist, dist_type
         gc.collect()
     
-    def load_tensors(self, model_name : str, data_type : str, spatial : bool=False):
+    def load_tensors(self, model_name : str, data_type : str, spatial : bool=False, sea_star : bool=False):
         """
         Loads tensors from disk for a given model and data type, optionally including spatial data.
 
@@ -313,6 +319,10 @@ class ExperimentManager:
             # Loading additional spatial data if requested
             dist = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist.pt", weights_only=True)
             d_type = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_type.pt", weights_only=True)
+            if sea_star:
+                dist_env = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_env.pt", weights_only=True)
+                dist_agents = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_agents.pt", weights_only=True)
+                return {'src': src, 'tgt': tgt, 'distance': dist, 'type': d_type, 'dist_env': dist_env, 'dist_agents': dist_agents}
             return {'src': src, 'tgt': tgt, 'distance': dist, 'type': d_type}
         else:
             return {'src': src, 'tgt': tgt}
@@ -442,9 +452,9 @@ class ExperimentManager:
         print("-" * 30)
         
         # Loading and preparing data
-        train = self.load_tensors(model_name=model_name, data_type="Train", spatial=True)
-        val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True)
-        test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True)
+        train = self.load_tensors(model_name=model_name, data_type="Train", spatial=True, sea_star=True)
+        val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True, sea_star=True)
+        test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True, sea_star=True)
         df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
         num_types = df_env['Type'].max()
         print(num_types)
