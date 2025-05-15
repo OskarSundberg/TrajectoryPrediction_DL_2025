@@ -58,16 +58,16 @@ class SEASTAREmbedding(nn.Module):
         
         # Embedding layers for categorical features in the distance sequence
         self.type_layers_distance = nn.ModuleList([
-            nn.Embedding(num_types_dist + num_types , embedding_dim).cuda()
+            nn.Embedding(num_types_dist + num_types , embedding_dim)
             for embedding_dim in type_dims[:]
         ])
 
         # Embedding layer for the last categorical feature of the source sequence
-        self.embedding_layer_src = nn.Embedding(num_types, src_dims[-1]).cuda()
+        self.embedding_layer_src = nn.Embedding(num_types, src_dims[-1])
 
         # Generate positional encoding for source and distance sequences
-        self.positional_encoding_src = self._generate_positional_encoding(self.size, sequence_length_src).cuda()
-        self.positional_encoding_distance = self._generate_positional_encoding(self.size, sequence_length_src).cuda()
+        self.positional_encoding_src = self._generate_positional_encoding(self.size, sequence_length_src)
+        self.positional_encoding_distance = self._generate_positional_encoding(self.size, sequence_length_src)
 
     def _generate_positional_encoding(self, embedding_size, sequence_length):
         """
@@ -80,15 +80,15 @@ class SEASTAREmbedding(nn.Module):
         Returns:
             torch.Tensor: A tensor containing the positional encoding for the sequence.
         """
-        positional_encoding = torch.zeros(sequence_length, embedding_size).cuda()
-        position = torch.arange(0, sequence_length, dtype=torch.float).unsqueeze(1).cuda()
-        div_term = torch.exp(torch.arange(0, embedding_size, 2).float().cuda() * (-torch.log(torch.tensor(10000.0)) / embedding_size)).cuda()
+        positional_encoding = torch.zeros(sequence_length, embedding_size)
+        position = torch.arange(0, sequence_length, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, embedding_size, 2).float() * (-torch.log(torch.tensor(10000.0)) / embedding_size))
         
         # Apply sine and cosine functions to alternate dimensions of the encoding
-        positional_encoding[:, 0::2] = torch.sin(position * div_term).cuda()
-        positional_encoding[:, 1::2] = torch.cos(position * div_term).cuda()
+        positional_encoding[:, 0::2] = torch.sin(position * div_term)
+        positional_encoding[:, 1::2] = torch.cos(position * div_term)
 
-        return positional_encoding.unsqueeze(0).cuda()  # Add batch dimension
+        return positional_encoding.unsqueeze(0)  # Add batch dimension
 
     def forward(self, input_tensor, is_src=True, src_tensor=None, type_tensor=None):
         """
@@ -109,45 +109,51 @@ class SEASTAREmbedding(nn.Module):
         embedding_dims = self.src_dims if is_src else self.dist_dims
 
         # Initialize an empty tensor for the embedded output
-        embedded_tensor = torch.zeros(batch_size, seq_length, self.size).cuda()
+        embedded_tensor = torch.zeros(batch_size, seq_length, self.size)
 
         # Handle source sequence embedding
         if is_src:
             start_index = 0
             for i, linear_layer in enumerate(self.linear_layers_src):
                 # Linearly project each feature of the source sequence
-                linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1)).cuda()
+                linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1))
 
                 # Get the embedding dimension for the current feature
                 embedding_dim = embedding_dims[i]
                 end_index = start_index + embedding_dim
 
                 # Place the linearly projected feature at the correct position in the embedded tensor
-                embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).cuda()
+                embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim)
                 start_index = end_index
 
             # Embed the last feature of the source sequence (categorical)
-            embedded_tensor[:, :, start_index:] = self.embedding_layer_src(input_tensor[:, :, 3].long()).cuda()
+            embedded_tensor[:, :, start_index:] = self.embedding_layer_src(input_tensor[:, :, 3].long())
 
         # Handle distance sequence embedding
         else:
-            embedded_tensor = torch.zeros(batch_size, seq_length, self.size).cuda()
+            embedded_tensor = torch.zeros(batch_size, seq_length, self.size)
             start_index = 0
+
+            print(input_tensor.shape)
+            print(len(list(zip(self.linear_layers_distance, self.type_layers_distance))))
+            print(len(self.type_layers_distance))
+            print(len(self.linear_layers_distance))
+
             for i, (linear_layer, embedding_layer) in enumerate(zip(self.linear_layers_distance, self.type_layers_distance)):
                 # Linearly project each feature of the distance sequence
-                linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1)).cuda()
+                linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1))
 
                 # Get the embedding dimension for the current feature
                 embedding_dim = embedding_dims[i]
                 
                 # Embed the categorical features in the distance sequence
-                embedding_output = embedding_layer(type_tensor[:, :, i].long()).cuda()
+                embedding_output = embedding_layer(type_tensor[:, :, i].long())
                 embedded_tensor[:, :, start_index:start_index + embedding_output.shape[-1]] = embedding_output
                 start_index = start_index + embedding_output.shape[-1]
 
                 # Place the linearly projected distance feature into the tensor
                 end_index = start_index + embedding_dim
-                embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).cuda()
+                embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim)
                 start_index = end_index
 
         # Add positional encoding to the embeddings
@@ -155,5 +161,5 @@ class SEASTAREmbedding(nn.Module):
         embedded_tensor = embedded_tensor + positional_encoding
 
         # Reshape the output tensor and return the final result
-        embedded_tensor = embedded_tensor.view(batch_size, seq_length, -1).cuda()
-        return embedded_tensor.cuda()
+        embedded_tensor = embedded_tensor.view(batch_size, seq_length, -1)
+        return embedded_tensor

@@ -22,6 +22,7 @@ from classes.Datasets.trajectory_dataset import TrajectoryDataset
 from classes.Datasets.transformer_dataset import TransformerDataset
 from classes.Datasets.star_dataset import STARDataset
 from classes.Datasets.saestar_dataset import SAESTARDataset
+from classes.Datasets.seastar_dataset import SEASTARDataset
 from classes.Experiments.experiment import Experiment
 
 class ExperimentManager:
@@ -137,14 +138,14 @@ class ExperimentManager:
         env_df = self.create_env_df()
         
         # Compute distance-related objects using environmental data
-        distance_objects = self.create_distance_objects(env_df=env_df)
+        #distance_objects = self.create_distance_objects(env_df=env_df) # not actually used anywhere
         
         # Construct the trajectory dataset
         trajectory_dataset = TrajectoryDataset(
-            data=self.location.df,
-            df_vector=self.location.env_vectors,
-            env_df=env_df,
-            distance_objects=distance_objects,
+            data=self.location.df,                  # basic data
+            df_vector=self.location.env_vectors,    # enviroment data
+            env_df=env_df,                          # enviroment data
+            #distance_objects=distance_objects,      # enviroment data
             dataset_len=self.location.dataset_length, 
             max_num_agents=self.location.num_agents, 
             src_length=self.src_len,
@@ -170,7 +171,7 @@ class ExperimentManager:
         calculate = Distances()
         
         # Create a DataFrame from environment polygons and compute intersections
-        df = pd.DataFrame(self.location.env_polygons)
+        df = pd.DataFrame(self.location.env_polygons) ##########################################################################################
         df['Intersection'] = df.apply(calculate.calculate_intersection, axis=1)
         
         # Filter valid intersection points and encode object types
@@ -191,7 +192,7 @@ class ExperimentManager:
         df_objects = [
             [10, row["Top_Left"][0], row["Top_Left"][1]] if row["Type"] == "Sign" else
             [11, row["Top_Left"][0], row["Top_Left"][1]] if row["Type"] == "Tree" else
-            [9, row["Top_Left"][0], row["Top_Left"][1]]
+            [9, row["Top_Left"][0], row["Top_Left"][1]] # Type = "Pole"
             for _, row in df_static_objects.iterrows()
         ]
         df_objects = pd.DataFrame(df_objects, columns=['Type', 'X', 'Y'])
@@ -209,25 +210,25 @@ class ExperimentManager:
         env_df.to_csv(f'./data/CombinedData/{self.location.location_name}/env_df.csv', index=False)
         return env_df
 
-    def create_distance_objects(self, env_df):
-        """
-        Compute distance-related tensors for environmental objects.
-
-        Parameters:
-        - env_df: DataFrame containing environmental objects.
-
-        Returns:
-        - Tensor representing Euclidean distances between objects.
-        """
-        calculate = Distances()
-        tensor = torch.tensor(env_df.iloc[len(self.location.static_objects['Type']) + 1:, :].values)
-        tensor = tensor.view(tensor.shape[0], 1, 5).repeat(1, 10, 1)
-        distance_objects = calculate.compute_euclidean_distance_objects(tensor[:, :, :2])
-        
-        # Cleanup memory after tensor operations
-        del tensor
-        gc.collect()
-        return distance_objects
+    #def create_distance_objects(self, env_df):
+    #    """
+    #    Compute distance-related tensors for environmental objects.
+    #
+    #    Parameters:
+    #    - env_df: DataFrame containing environmental objects.
+    #
+    #    Returns:
+    #    - Tensor representing Euclidean distances between objects.
+    #    """
+    #    calculate = Distances()
+    #    tensor = torch.tensor(env_df.iloc[len(self.location.static_objects['Type']) + 1:, :].values)
+    #    tensor = tensor.view(tensor.shape[0], 1, 5).repeat(1, 10, 1)
+    #    distance_objects = calculate.compute_euclidean_distance_objects(tensor[:, :, :2])
+    #    
+    #    # Cleanup memory after tensor operations
+    #    del tensor
+    #    gc.collect()
+    #    return distance_objects
 
 
     def create_timestamp_df(self, data):
@@ -445,11 +446,11 @@ class ExperimentManager:
         val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True)
         test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True)
         df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
-        num_types = df_env['Type'].max()
+        num_types = df_env['Type'].max() #4 + len(df_env['ID'].unique())
         graph_dims = len(train['distance'][0, 0, :])
-        train_dataset = SAESTARDataset(train)
-        val_dataset = SAESTARDataset(val)
-        test_dataset = SAESTARDataset(test)
+        train_dataset = SEASTARDataset(train)
+        val_dataset = SEASTARDataset(val)
+        test_dataset = SEASTARDataset(test)
         
         # Scaling data and creating DataLoaders
         scaler = Scaler(train, model_name, True)

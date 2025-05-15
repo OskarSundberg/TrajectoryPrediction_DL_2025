@@ -31,10 +31,10 @@ class MLPDecoder(nn.Module):
         super(MLPDecoder, self).__init__()
 
         # First fully connected layer: input_size -> hidden_size
-        self.fc1 = nn.Linear(input_size, hidden_size).cuda()
+        self.fc1 = nn.Linear(input_size, hidden_size)
         
         # Second fully connected layer: hidden_size -> output_size
-        self.fc2 = nn.Linear(hidden_size, output_size).cuda()
+        self.fc2 = nn.Linear(hidden_size, output_size)
         
         # Dropout layer for regularization after input
         self.dropout = nn.Dropout(p=dropout)
@@ -57,21 +57,21 @@ class MLPDecoder(nn.Module):
             torch.Tensor: Output tensor of shape (batch_size, output_size).
         """
         # Apply dropout to the input
-        x = self.dropout(x).cuda()
+        x = self.dropout(x)
         
         # Apply ReLU activation
-        x = self.relu(x).cuda()
+        x = self.relu(x)
         
         # First fully connected layer
-        x = self.fc1(x).cuda()
+        x = self.fc1(x)
         
         # Additional dropout after the first FC layer
-        x = self.dropout1(x).cuda()
+        x = self.dropout1(x)
         
         # Additional ReLU activation
-        x = self.relu1(x).cuda()
+        x = self.relu1(x)
         
         # Second fully connected layer (output layer)
-        x = self.fc2(x).cuda()
+        x = self.fc2(x)
         
         return x

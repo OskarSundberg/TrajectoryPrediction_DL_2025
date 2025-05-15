@@ -210,7 +210,7 @@ class Location:
                     "Embedding Dim X": float(embedding_dims[0]),
                     "Embedding Dim Y": float(embedding_dims[1]),
                     "Embedding Dim Speed": float(embedding_dims[2]),
-                    "Embedding Dim Num Agents": int(self.num_agents)
+                    "Embedding Dim Num Agents": float(embedding_dims[3])
                 }
                 break
         

@@ -16,6 +16,7 @@ from classes.Models.base_model import TransformerBase
 from classes.Models.transformer_model import Transformer
 from classes.Models.star_model import STAR
 from classes.Models.saestar_model import SAESTAR
+from classes.Models.seastar_model import SEASTAR
 
 import torch
 from torchviz import make_dot
@@ -128,7 +129,7 @@ class Experiment:
         array = [initial_value] * array_length
         array[-1] += remainder
         
-        return torch.tensor(array, dtype=torch.int).cuda()
+        return torch.tensor(array, dtype=torch.int)
     
     def base_model(self, src, tgt, hidden, layers, heads, dropout) -> nn.Module:
         """
@@ -252,7 +253,8 @@ class Experiment:
         total = sum(src_dims)
         dist_dims = self.generate_embedded_dim(total / 2, graph_dims) 
         type_dims = self.generate_embedded_dim(total / 2, graph_dims) 
-        return SAESTAR(src_dims, dist_dims, type_dims, 4, num_types, hidden, layers, heads, src, tgt, dropout)
+        return SEASTAR(src_dims, dist_dims, type_dims, 4, num_types, hidden, layers, heads, src, tgt, dropout)
+
     def train(self, train_loader: DataLoader, epoch: int) -> float:
         """
         Trains the model for one epoch using the provided DataLoader.
@@ -276,33 +278,43 @@ class Experiment:
             
             # Handle different model types
             if self.model_type == 'Base':
-                inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                inputs, targets = batch['src'], batch['tgt']
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                 inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask, tgt_mask=tgt_mask)
             
             elif self.model_type == 'Transformer':
-                inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                inputs, targets = batch['src'], batch['tgt']
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:]), dim=2)
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs, targets, src_mask=src_mask, tgt_mask=tgt_mask)
             
-            elif self.model_type in ['STAR', 'SAESTAR', 'SEASTAR']:
-                inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
+            elif self.model_type == 'SEASTAR':
+                inputs, targets, distances, distance_types = batch['src'], batch['tgt'], batch['distance'], batch['type']
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 distances = self.scaler.scale(distances, "dist")
-                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:]), dim=2)
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask)
+
+            elif self.model_type in ['STAR', 'SAESTAR']:
+                inputs, targets, distances, distance_types = batch['src'], batch['tgt'], batch['distance'], batch['type']
+                src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
+                scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
+                targets = self.scaler.scale(targets[:, :, :2], "tgt")
+                distances = self.scaler.scale(distances, "dist")
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:]), dim=2)
+                with autocast(dtype=torch.float16):
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask)
 
             # Compute loss, backpropagate, and optimize
             loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
@@ -335,30 +347,30 @@ class Experiment:
             for batch_idx, batch in enumerate(valid_loader):
                 # Handle different model types and prepare inputs/targets accordingly
                 if self.model_type == 'Base':
-                    inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                    inputs, targets = batch['src'], batch['tgt']
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                     inputs = self.scaler.scale(inputs[:, :, :3], "src")
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask, tgt_mask=tgt_mask)
                 
                 elif self.model_type == 'Transformer':
-                    inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                    inputs, targets = batch['src'], batch['tgt']
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                     scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:]), dim=2)
+                    outputs = self.model(inputs, targets, src_mask=src_mask, tgt_mask=tgt_mask)
                 
                 elif self.model_type in ['STAR', 'SAESTAR', 'SEASTAR']:
-                    inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
+                    inputs, targets, distances, distance_types = batch['src'], batch['tgt'], batch['distance'], batch['type']
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
                     distances = self.scaler.scale(distances, "dist")
-                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:]), dim=2)
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask)
 
                 # Compute loss
                 loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
@@ -377,7 +389,7 @@ class Experiment:
             train_loader (DataLoader): The DataLoader for the training dataset.
             valid_loader (DataLoader): The DataLoader for the validation dataset.
         """
-        self.model.cuda()  # Move model to GPU
+        #self.model  # Move model to GPU
         best_valid_loss = float('inf')
         early_stopping_counter = 0
 
@@ -512,7 +524,7 @@ class Experiment:
             test_loader (DataLoader): The DataLoader for the test dataset.
         """
         # Set model to evaluation mode and move it to GPU
-        self.model.cuda()
+        self.model
         self.model.eval()
         
         # Initialize lists to store results and predictions
@@ -534,30 +546,30 @@ class Experiment:
             for batch_idx, batch in enumerate(test_loader):
                 # Retrieve inputs and targets for each model type
                 if self.model_type == 'Base':
-                    src, tgt = batch['src'].cuda(), batch['tgt'].cuda()
+                    src, tgt = batch['src'], batch['tgt']
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     tgt_mask = self.create_mask(tgt.shape[0], tgt.shape[1])
                     inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
-                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask, tgt_mask=tgt_mask)
 
                 elif self.model_type == 'Transformer':
-                    src, tgt = batch['src'].cuda(), batch['tgt'].cuda()
+                    src, tgt = batch['src'], batch['tgt']
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     tgt_mask = self.create_mask(tgt.shape[0], tgt.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
-                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, src[:, :, 4:]), dim=2)
+                    outputs = self.model(inputs, targets, src_mask=src_mask, tgt_mask=tgt_mask)
 
                 elif self.model_type == 'STAR' or self.model_type == 'SAESTAR' or self.model_type == 'SEASTAR':
-                    src, tgt, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
+                    src, tgt, distances, distance_types = batch['src'], batch['tgt'], batch['distance'], batch['type']
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
                     distances = self.scaler.scale(distances, "dist")
-                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, src[:, :, 4:]), dim=2)
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask)
 
                 # Unscale the model outputs to original values
                 new_outputs = self.scaler.unscale(outputs, "tgt", tgt[:, :, :2].shape)

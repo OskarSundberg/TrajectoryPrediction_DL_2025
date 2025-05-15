@@ -77,7 +77,7 @@ class Scaler:
         # Clip the data to avoid extreme values that could distort scaling
         data_clipped = np.clip(np.array(data_flat.cpu(), dtype=np.float32), -1e6, 1e6)
         # Transform the data using the fitted scaler
-        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32).cuda()
+        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32)
         # Reshape the data back to its original shape
         reshaped_data = data_scaled.reshape(shape)
         return reshaped_data
@@ -104,7 +104,7 @@ class Scaler:
         # Flatten the data for inverse transformation
         data_flatten = data.reshape(data.shape[0] * data.shape[1], data.shape[2])
         # Inverse transform the data to the original scale
-        data_unscaled = torch.tensor(scaler.inverse_transform(np.array(data_flatten.cpu()))).cuda()
+        data_unscaled = torch.tensor(scaler.inverse_transform(np.array(data_flatten.cpu())))
         # Reshape the unscaled data back to the original shape
         return data_unscaled.reshape(original_shape)
         

@@ -66,97 +66,97 @@ roi_valhallavagen = [
     {'roi_x_min':275, 'roi_x_max':495, 'roi_y_min':500, 'roi_y_max':700, 'location':'Right'}
     ]
 
-# From Torpagatan_grid.png
-Torpagatan_X_min = -30.02 
-Torpagatan_X_max = 30.02
-Torpagatan_Y_min = -20
-Torpagatan_Y_max = 20
+## From Torpagatan_grid.png
+#Torpagatan_X_min = -30.02 
+#Torpagatan_X_max = 30.02
+#Torpagatan_Y_min = -20
+#Torpagatan_Y_max = 20
+#
+#Torpagatan_env_vectors = {
+#    'Type': ['Zebra Crossing', 'PreCrosswalk', 'PreCrosswalk', 'PreCrosswalk', 'PreCrosswalk', 'CrossWalk', 'Lane', 'Lane', 'Lane', 'Lane', 'Lane', 'Lane', 'SideWalk', 'SideWalk', 'SideWalk', 'SideWalk'],
+#    'Top_Left': [(428, 261), (126, 80), (386, 143), (434, 218), (391, 387), (253, 97), (482, 285), (464, 353), (124, 85), (94, 159), (259, 23), (318, 20), (50, 282), (450, 152), (391, 41), (446, 482)],
+#    'Top_Right': [(482, 285), (259, 23), (450, 152), (509, 228), (452, 409), (386, 143), (1293, 572), (1269, 625), (428, 261), (418, 329), (318, 20), (391, 41), (367, 442), (1340, 468), (446, 59), (1220, 736)],
+#    'Bottom_Left': [(391, 387), (202, 142), (384, 204), (428, 261), (337, 521), (202, 142), (464, 353), (452, 409), (94, 159), (70, 222), (253, 97), (311, 115), (30, 332), (509, 228), (386, 143), (458, 602)],
+#    'Bottom_Right': [(452, 409), (253, 97), (512, 224), (482, 285), (416, 549), (384, 204), (1269, 625), (1245, 679), (418, 329), (391, 387), (311, 115), (386, 143), (337, 521), (1320, 507), (450, 152), (1176, 831)],
+#    'Top_Left_to_Top_Right': [(54, 24), (133, -57), (64, 9), (75, 10), (61, 22), (133, 46), (811, 287), (805, 272), (304, 176), (324, 170), (59, -3), (73, 21), (317, 160), (890, 316), (55, 18), (774, 254)],
+#    'Top_Right_to_Bottom_Right': [(-30, 124), (-6, 74), (62, 72), (-27, 57), (-36, 140), (-2, 61), (-24, 53), (-24, 54), (-10, 68), (-27, 58), (-7, 95), (-5, 102), (-30, 79), (-20, 39), (4, 93), (-44, 95)],
+#    'Bottom_Right_to_Bottom_Left': [(-61, -22), (-51, 45), (-128, -20), (-54, -24), (-79, -28), (-182, -62), (-805, -272), (-793, -270), (-324, -170), (-321, -165), (-58, -18), (-75, -28), (-307, -189), (-811, -279), (-64, -9), (-718, -229)],
+#    'Bottom_Left_to_Top_Left': [(37, -126), (-76, -62), (2, -61), (6, -43), (54, -134), (51, -45), (18, -68), (12, -56), (30, -74), (24, -63), (6, -74), (7, -95), (20, -50), (-59, -76), (5, -102), (-12, -120)]
+#}
+#
+#torpagatan_ENV = {
+#    'Type': [
+#        "Zebra Crossing", "PreCrosswalk", "PreCrosswalk", "PreCrosswalk", 
+#        "PreCrosswalk", "CrossWalk", "Lane", "Lane", "Lane", "Lane", 
+#        "Lane", "Lane", "SideWalk", "SideWalk", "SideWalk", "SideWalk"
+#        ],
+#    'Top_Left': [
+#        (428, 261), (126, 80), (386, 143), (434, 218), (391, 387), (253, 97), 
+#        (482, 285), (464, 353), (124, 85), (94, 159), (259, 23), (318, 20), 
+#        (50, 282), (450, 152), (391, 41), (446, 482)
+#        ],
+#    'Top_Right': [
+#        (482, 285), (259, 23), (450, 152), (509, 228), (452, 409), (386, 143), 
+#        (1293, 572), (1269, 625), (428, 261), (418, 329), (318, 20), (391, 41), 
+#        (367, 442), (1340, 468), (446, 59), (1220, 736)
+#        ],
+#    'Bottom_Left': [
+#        (391, 387), (202, 142), (384, 204), (428, 261), (337, 521), (202, 142),
+#        (464, 353), (452, 409), (94, 159), (70, 222), (253, 97), (311, 115), 
+#        (30, 332), (509, 228), (386, 143), (458, 602)
+#        ],
+#    'Bottom_Right': [
+#        (452, 409), (253, 97), (512, 224), (482, 285), (416, 549), (384, 204), 
+#        (1269, 625), (1245, 679), (418, 329), (391, 387), (311, 115),
+#        (386, 143), (337,521), (1320, 507), (450, 152), (1176, 831)
+#        ]
+#}
+#
+#torpagatan_static_objs = {
+#    'Type': ["Tree", "Tree", "Tree", "Tree", "Sign", "Sign", "Sign"],
+#    'Top_Left': [(693, 629), (194, 342), (78, 261), (1047, 449), (500, 279), (380, 401), (439, 106)],
+#    'Top_Right': [None] * 7,
+#    'Bottom_Left': [None] * 7,
+#    'Bottom_Right': [None] * 7
+#}
+#
+#
+#roi_torpagatan = [
+#    {'roi_x_min':670, 'roi_x_max':750, 'roi_y_min':580, 'roi_y_max':675, 'object_x':693, 'object_y':630, 'type':'Tree'},
+#    {'roi_x_min':175, 'roi_x_max':225, 'roi_y_min':300, 'roi_y_max':365, 'object_x':194, 'object_y':340, 'type':'Tree'},
+#    {'roi_x_min':350, 'roi_x_max':450, 'roi_y_min':350, 'roi_y_max':450, 'object_x':380, 'object_y':401, 'type':'Sign'},
+#    {'roi_x_min':460, 'roi_x_max':560, 'roi_y_min':225, 'roi_y_max':305, 'object_x':500, 'object_y':279, 'type':'Sign'},
+#    {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
+#    ]
 
-Torpagatan_env_vectors = {
-    'Type': ['Zebra Crossing', 'PreCrosswalk', 'PreCrosswalk', 'PreCrosswalk', 'PreCrosswalk', 'CrossWalk', 'Lane', 'Lane', 'Lane', 'Lane', 'Lane', 'Lane', 'SideWalk', 'SideWalk', 'SideWalk', 'SideWalk'],
-    'Top_Left': [(428, 261), (126, 80), (386, 143), (434, 218), (391, 387), (253, 97), (482, 285), (464, 353), (124, 85), (94, 159), (259, 23), (318, 20), (50, 282), (450, 152), (391, 41), (446, 482)],
-    'Top_Right': [(482, 285), (259, 23), (450, 152), (509, 228), (452, 409), (386, 143), (1293, 572), (1269, 625), (428, 261), (418, 329), (318, 20), (391, 41), (367, 442), (1340, 468), (446, 59), (1220, 736)],
-    'Bottom_Left': [(391, 387), (202, 142), (384, 204), (428, 261), (337, 521), (202, 142), (464, 353), (452, 409), (94, 159), (70, 222), (253, 97), (311, 115), (30, 332), (509, 228), (386, 143), (458, 602)],
-    'Bottom_Right': [(452, 409), (253, 97), (512, 224), (482, 285), (416, 549), (384, 204), (1269, 625), (1245, 679), (418, 329), (391, 387), (311, 115), (386, 143), (337, 521), (1320, 507), (450, 152), (1176, 831)],
-    'Top_Left_to_Top_Right': [(54, 24), (133, -57), (64, 9), (75, 10), (61, 22), (133, 46), (811, 287), (805, 272), (304, 176), (324, 170), (59, -3), (73, 21), (317, 160), (890, 316), (55, 18), (774, 254)],
-    'Top_Right_to_Bottom_Right': [(-30, 124), (-6, 74), (62, 72), (-27, 57), (-36, 140), (-2, 61), (-24, 53), (-24, 54), (-10, 68), (-27, 58), (-7, 95), (-5, 102), (-30, 79), (-20, 39), (4, 93), (-44, 95)],
-    'Bottom_Right_to_Bottom_Left': [(-61, -22), (-51, 45), (-128, -20), (-54, -24), (-79, -28), (-182, -62), (-805, -272), (-793, -270), (-324, -170), (-321, -165), (-58, -18), (-75, -28), (-307, -189), (-811, -279), (-64, -9), (-718, -229)],
-    'Bottom_Left_to_Top_Left': [(37, -126), (-76, -62), (2, -61), (6, -43), (54, -134), (51, -45), (18, -68), (12, -56), (30, -74), (24, -63), (6, -74), (7, -95), (20, -50), (-59, -76), (5, -102), (-12, -120)]
-}
-
-torpagatan_ENV = {
-    'Type': [
-        "Zebra Crossing", "PreCrosswalk", "PreCrosswalk", "PreCrosswalk", 
-        "PreCrosswalk", "CrossWalk", "Lane", "Lane", "Lane", "Lane", 
-        "Lane", "Lane", "SideWalk", "SideWalk", "SideWalk", "SideWalk"
-        ],
-    'Top_Left': [
-        (428, 261), (126, 80), (386, 143), (434, 218), (391, 387), (253, 97), 
-        (482, 285), (464, 353), (124, 85), (94, 159), (259, 23), (318, 20), 
-        (50, 282), (450, 152), (391, 41), (446, 482)
-        ],
-    'Top_Right': [
-        (482, 285), (259, 23), (450, 152), (509, 228), (452, 409), (386, 143), 
-        (1293, 572), (1269, 625), (428, 261), (418, 329), (318, 20), (391, 41), 
-        (367, 442), (1340, 468), (446, 59), (1220, 736)
-        ],
-    'Bottom_Left': [
-        (391, 387), (202, 142), (384, 204), (428, 261), (337, 521), (202, 142),
-        (464, 353), (452, 409), (94, 159), (70, 222), (253, 97), (311, 115), 
-        (30, 332), (509, 228), (386, 143), (458, 602)
-        ],
-    'Bottom_Right': [
-        (452, 409), (253, 97), (512, 224), (482, 285), (416, 549), (384, 204), 
-        (1269, 625), (1245, 679), (418, 329), (391, 387), (311, 115),
-        (386, 143), (337,521), (1320, 507), (450, 152), (1176, 831)
-        ]
-}
-
-torpagatan_static_objs = {
-    'Type': ["Tree", "Tree", "Tree", "Tree", "Sign", "Sign", "Sign"],
-    'Top_Left': [(693, 629), (194, 342), (78, 261), (1047, 449), (500, 279), (380, 401), (439, 106)],
-    'Top_Right': [None] * 7,
-    'Bottom_Left': [None] * 7,
-    'Bottom_Right': [None] * 7
-}
-
-
-roi_torpagatan = [
-    {'roi_x_min':670, 'roi_x_max':750, 'roi_y_min':580, 'roi_y_max':675, 'object_x':693, 'object_y':630, 'type':'Tree'},
-    {'roi_x_min':175, 'roi_x_max':225, 'roi_y_min':300, 'roi_y_max':365, 'object_x':194, 'object_y':340, 'type':'Tree'},
-    {'roi_x_min':350, 'roi_x_max':450, 'roi_y_min':350, 'roi_y_max':450, 'object_x':380, 'object_y':401, 'type':'Sign'},
-    {'roi_x_min':460, 'roi_x_max':560, 'roi_y_min':225, 'roi_y_max':305, 'object_x':500, 'object_y':279, 'type':'Sign'},
-    {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
-    ]
-
-#def remove_directory_contents(directory_path):
-#    # Ensure the directory exists
-#    if os.path.exists(directory_path) and os.path.isdir(directory_path):
-#        # Iterate over all files and directories in the specified directory
-#        for item in os.listdir(directory_path):
-#            item_path = os.path.join(directory_path, item)
-#            # Remove files and directories
-#            if os.path.isfile(item_path):
-#                print(f"Deleting {item_path}")
-#                os.remove(item_path)
+def remove_directory_contents(directory_path):
+    # Ensure the directory exists
+    if os.path.exists(directory_path) and os.path.isdir(directory_path):
+        # Iterate over all files and directories in the specified directory
+        for item in os.listdir(directory_path):
+            item_path = os.path.join(directory_path, item)
+            # Remove files and directories
+            if os.path.isfile(item_path):
+                print(f"Deleting {item_path}")
+                os.remove(item_path)
 
 # needed for when debugging on cpu
 #print(f"cwd = {os.getcwd()}")
-os.chdir("/home/suos21hj/viscando/TrajectoryPrediction_DL_2025/code")
-print(f"cwd = {os.getcwd()}")
+os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
+#print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
-    #if False:
-    #    remove_directory_contents("./data/CombinedData/Torpagatan")
-    #    remove_directory_contents("./data/CombinedData/Valhallavagen")
-    #
-    #    remove_directory_contents("./data/Datasets/Torpagatan/Test")
-    #    remove_directory_contents("./data/Datasets/Torpagatan/Train")
-    #    remove_directory_contents("./data/Datasets/Torpagatan/Val")
-    #
-    #    remove_directory_contents("./data/Datasets/Valhallavagen/Test")
-    #    remove_directory_contents("./data/Datasets/Valhallavagen/Train")
-    #    remove_directory_contents("./data/Datasets/Valhallavagen/Val")
+    if True:
+        remove_directory_contents("./data/CombinedData/Torpagatan")
+        remove_directory_contents("./data/CombinedData/Valhallavagen")
+    
+        remove_directory_contents("./data/Datasets/Torpagatan/Test")
+        remove_directory_contents("./data/Datasets/Torpagatan/Train")
+        remove_directory_contents("./data/Datasets/Torpagatan/Val")
+    
+        remove_directory_contents("./data/Datasets/Valhallavagen/Test")
+        remove_directory_contents("./data/Datasets/Valhallavagen/Train")
+        remove_directory_contents("./data/Datasets/Valhallavagen/Val")
 
     # Check if GPU is available 
     gpu = torch.cuda.is_available()
@@ -171,13 +171,24 @@ if __name__=="__main__":
     epochs = 3
     num_layers = 16
     num_heads = 8
-    dropout = 0.6
-    learning_rate = 0.0015
+    dropout = 0.3
+    learning_rate = 0.000015
     src_len = 10
     tgt_len = 40
-    batch_size = 32
+    batch_size = 128
     hidden_size = 512
     earlystopping = 10
+
+    # epochs = 300
+    # num_layers = 16
+    # num_heads = 8
+    # dropout = 0.3
+    # learning_rate = 0.000015
+    # src_len = 10
+    # tgt_len = 40
+    # batch_size = 32
+    # hidden_size = 512
+    # earlystopping = 30
     
     valhallavagen = Location(
         min_x=Valhallavagen_X_min, 
@@ -211,35 +222,36 @@ if __name__=="__main__":
     #experiment_manager.experiment_star()
     #experiment_manager.experiment_saestar()
     experiment_manager.experiment_seastar()
+    
     del valhallavagen, viz, experiment_manager
     gc.collect()
     
-    torpagatan = Location(
-        min_x=Torpagatan_X_min, 
-        max_x=Torpagatan_X_max, 
-        min_y=Torpagatan_Y_min, 
-        max_y=Torpagatan_Y_max, 
-        location_name="Torpagatan",
-        env_vectors=Torpagatan_env_vectors,
-        env_polygons=torpagatan_ENV,
-        static_objects=torpagatan_static_objs,
-        roi=roi_torpagatan
-        )
-    viz = Visualization(torpagatan)
-    experiment_manager = ExperimentManager(
-        location=torpagatan, 
-        visualization=viz, 
-        epochs=epochs, 
-        learning_rate=learning_rate, 
-        num_layers=num_layers, 
-        num_heads=num_heads, 
-        dropout=dropout,
-        src_len=src_len,
-        tgt_len=tgt_len,
-        batch_size=batch_size,
-        hidden_size=hidden_size,
-        earlystopping=earlystopping
-        )
+    #torpagatan = Location(
+    #    min_x=Torpagatan_X_min, 
+    #    max_x=Torpagatan_X_max, 
+    #    min_y=Torpagatan_Y_min, 
+    #    max_y=Torpagatan_Y_max, 
+    #    location_name="Torpagatan",
+    #    env_vectors=Torpagatan_env_vectors,
+    #    env_polygons=torpagatan_ENV,
+    #    static_objects=torpagatan_static_objs,
+    #    roi=roi_torpagatan
+    #    )
+    #viz = Visualization(torpagatan)
+    #experiment_manager = ExperimentManager(
+    #    location=torpagatan, 
+    #    visualization=viz, 
+    #    epochs=epochs, 
+    #    learning_rate=learning_rate, 
+    #    num_layers=num_layers, 
+    #    num_heads=num_heads, 
+    #    dropout=dropout,
+    #    src_len=src_len,
+    #    tgt_len=tgt_len,
+    #    batch_size=batch_size,
+    #    hidden_size=hidden_size,
+    #    earlystopping=earlystopping
+    #    )
     
     #experiment_manager.experiment_base()
     #experiment_manager.experiment_transformer()
