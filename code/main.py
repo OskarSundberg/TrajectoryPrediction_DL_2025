@@ -128,16 +128,16 @@ roi_torpagatan = [
     {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
     ]
 
-# def remove_directory_contents(directory_path):
-#    # Ensure the directory exists
-#    if os.path.exists(directory_path) and os.path.isdir(directory_path):
-#        # Iterate over all files and directories in the specified directory
-#        for item in os.listdir(directory_path):
-#            item_path = os.path.join(directory_path, item)
-#            # Remove files and directories
-#            if os.path.isfile(item_path):
-#                print(f"Deleting {item_path}")
-#                os.remove(item_path)
+def remove_directory_contents(directory_path):
+   # Ensure the directory exists
+   if os.path.exists(directory_path) and os.path.isdir(directory_path):
+       # Iterate over all files and directories in the specified directory
+       for item in os.listdir(directory_path):
+           item_path = os.path.join(directory_path, item)
+           # Remove files and directories
+           if os.path.isfile(item_path):
+               print(f"Deleting {item_path}")
+               os.remove(item_path)
 
 # needed for when debugging on cpu
 #print(f"cwd = {os.getcwd()}")
@@ -145,7 +145,7 @@ os.chdir("/home/suos21hj/viscando/TrajectoryPrediction_DL_2025/code")
 print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
-    if False:
+    if True:
        remove_directory_contents("./data/CombinedData/Torpagatan")
        remove_directory_contents("./data/CombinedData/Valhallavagen")
     
@@ -168,8 +168,8 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 4
-    num_layers = 8
+    epochs = 10
+    num_layers = 10
     num_heads = 4
     dropout = 0.6
     learning_rate = 0.00015
