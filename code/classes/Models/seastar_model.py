@@ -29,7 +29,7 @@ class SEASTAR(torch.nn.Module):
             Executes the forward pass of the model, embedding the input data,
             encoding spatial and temporal features, and decoding the output.
     """
-    def __init__(self, src_dims, dist_dims, type_dims, num_types, num_types_dist, hidden=256, num_layers=16, num_heads=8, src_len=10, tgt_len=40, dropout=0.1):
+    def __init__(self, src_dims, dist_dims, type_dims, num_types, num_types_dist, num_types_env, hidden=256, num_layers=16, num_heads=8, src_len=10, tgt_len=40, dropout=0.1):
         """
         Initialize the SEASTAR model.
 
@@ -91,7 +91,7 @@ class SEASTAR(torch.nn.Module):
         self.relu1 = nn.ReLU()
         self.relu2 = nn.ReLU()
 
-    def forward(self, src, dist, type_env, env_dist, src_mask=None, dist_key_padding_mask=None):
+    def forward(self, src, dist, type_tensor, env_dist, src_mask=None, dist_key_padding_mask=None):
         """
         Forward pass through the SEASTAR model.
 
@@ -105,26 +105,29 @@ class SEASTAR(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor of shape (batch_size, tgt_len, output_size).
         """
-        print("_=======================_")
-        print(src.shape)
-        print(dist.shape)
-        print(type_env.shape)
-        print(env_dist.shape)
-        print("_=======================_")
+        # print("_=======================_")
+        # print(src.shape)#4
+        # print(dist.shape)#11
+        # print(type_tensor.shape)#26
+        # print(env_dist.shape)#15
+
+        # print("_=======================_")
         # Embed the source sequence for temporal encoding.
         src_temporal_embedded = self.embedding_layer(src, is_src=True).to(self.device)
         src_temporal_embedded = self.dropout(src_temporal_embedded).to(self.device)  # Apply dropout.
         src_temporal_embedded = self.relu(src_temporal_embedded).to(self.device)  # Apply ReLU activation.
-
+        
+        # Embed the env sequence for environmental encoding.
+        src_env_embedded = self.embedding_layer(env_dist, is_src=False, src_tensor=src, env_tensor_flag=True, type_tensor=type_tensor).to(self.device)
+        src_env_embedded = self.dropout1(src_env_embedded).to(self.device)  # Apply dropout.
+        src_env_embedded = self.relu2(src_env_embedded).to(self.device)  # Apply ReLU activation.
+        
         # Embed the distance sequence for spatial encoding.
-        src_dist_embedded = self.embedding_layer(dist, is_src=False, src_tensor=src, type_tensor=type_env).to(self.device)
-        src_dist_embedded = self.dropout1(src_dist_embedded).to(self.device)  # Apply dropout.
+        src_dist_embedded = self.embedding_layer(dist, is_src=False, src_tensor=src, type_tensor=type_tensor).to(self.device)
+        src_dist_embedded = self.dropout2(src_dist_embedded).to(self.device)  # Apply dropout.
         src_dist_embedded = self.relu1(src_dist_embedded).to(self.device)  # Apply ReLU activation.
    
-        # Embed the env sequence for environmental encoding.
-        src_env_embedded = self.embedding_layer(env_dist, is_src=False, src_tensor=src, type_tensor=type_env).to(self.device)
-        src_env_embedded = self.dropout2(src_env_embedded).to(self.device)  # Apply dropout.
-        src_env_embedded = self.relu2(src_env_embedded).to(self.device)  # Apply ReLU activation.
+
 
         # Process spatial, temporal, and environmental embeddings through respective encoders.
         spatial_input_embedded = self.spatial_encoder_1(src_dist_embedded, mask=src_mask).to(self.device)
@@ -147,8 +150,8 @@ class SEASTAR(torch.nn.Module):
         )
 
         # Decode the temporal output through multiple decoders.
-        print("Hello_1")
-        print(temporal_output)
+        #print("Hello_1")
+        #print(temporal_output)
         output1 = self.decoder1(temporal_output).to(self.device)
         output2 = self.decoder2(temporal_output).to(self.device)
         output3 = self.decoder3(temporal_output).to(self.device)
@@ -163,9 +166,9 @@ class SEASTAR(torch.nn.Module):
         output = torch.cat([output1, output2, output3, output4, output5, output6], dim=1) ##<-- 60 istället för 40 
 
         # Infer tgt_len dynamically and reshape
-        print(self.output_size)
-        print(src.shape[0])
-        print(output)
+        #print(self.output_size)
+        #print(src.shape[0])
+        #print(output)
         output = output.view(src.shape[0], -1, self.output_size).to(self.device)
         output = output[:, :40, :]    ##<<--- why 
 

@@ -259,7 +259,7 @@ class Experiment:
         total = sum(src_dims)
         dist_dims = self.generate_embedded_dim(total / 2, graph_dims) 
         type_dims = self.generate_embedded_dim(total / 2, graph_dims) 
-        return SEASTAR(src_dims, dist_dims, type_dims, 4, num_types, hidden, layers, heads, src, tgt, dropout)
+        return SEASTAR(src_dims, dist_dims, type_dims, 4, num_types, 15, hidden, layers, heads, src, tgt, dropout)
     def train(self, train_loader: DataLoader, epoch: int) -> float:
         """
         Trains the model for one epoch using the provided DataLoader.
@@ -319,7 +319,7 @@ class Experiment:
                 dist_env = self.scaler.scale(dist_env, "env_dist")
                 inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
+                    outputs = self.model(inputs.long(), distances.long(), distance_types.long(), env_dist=dist_env.long(),src_mask=src_mask.to(self.device))
 
 
             # Compute loss, backpropagate, and optimize
@@ -597,7 +597,7 @@ class Experiment:
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
-                    distances = self.scaler.scale(dist_agents, "agents_dist")
+                    distances = self.scaler.scale(dist_agents, "agent_dist")
                     dist_env = self.scaler.scale(dist_env, "env_dist")
                     inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
                     outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))

@@ -67,71 +67,52 @@ class TrajectoryDataset(Dataset):
             src_end_idx = self.start_idx + self.src_sequence_length
             tgt_end_idx = src_end_idx + self.tgt_sequence_length
 
-            # Check for end of data
             if tgt_end_idx > len(self.data) - 1:
-                return {
-                    'src': None,
-                    'tgt': None,
-                    'dist': None,
-                    'dist_type': None,
-                    'dist_agents': None,
-                    'dist_env': None,
-                    'timestamp': None
-                }
+                return {'src': None, 'tgt': None, 'dist': None, 'dist_type': None,
+                        'dist_agents': None, 'dist_env': None, 'timestamp': None}
 
-            # Slice the dataframe once
             data_slice = self.data.iloc[self.start_idx:tgt_end_idx]
             src_group = data_slice.iloc[:self.src_sequence_length]
             tgt_group = data_slice.iloc[self.src_sequence_length:]
 
-            # Ensure single agent trajectory
             if src_group['ID'].nunique() > 1 or tgt_group['ID'].nunique() > 1:
                 self.start_idx += 1
                 continue
 
-            # Extract features & timestamps
             src_feat = src_group[['X','Y','Speed','ID','Type']].values.astype(np.float32)
             tgt_feat = tgt_group[['X','Y','Speed','ID','Type']].values.astype(np.float32)
             timestamps = src_group['Time'].values
             src = torch.tensor(src_feat)
             tgt = torch.tensor(tgt_feat)
 
-            # If only metadata requested
             if self.info:
                 self.start_idx += self.src_sequence_length
-                return {
-                    'src': src, 'tgt': tgt,
-                    'dist': None, 'dist_type': None,
-                    'dist_agents': None, 'dist_env': None,
-                    'timestamp': timestamps
-                }
+                return {'src': src, 'tgt': tgt, 'dist': None, 'dist_type': None,
+                        'dist_agents': None, 'dist_env': None, 'timestamp': timestamps}
 
-            # Prepare containers
             T = len(timestamps)
             A = self.max_num_agents
             E = len(self.env)
             combined_dist = torch.zeros(T, A + E)
             combined_type = torch.zeros(T, A + E)
 
-            # Pre-filter other agents
             current_id = src_group['ID'].iloc[0]
             others = self.data[self.data['ID'] != current_id]
 
             # Agent-agent distances
             for t_idx, t in enumerate(timestamps):
-                agents = others[others['Time']==t][['X','Y','Type']].values
+                agents = others[others['Time'] == t][['X','Y','Type']].values
                 if agents.shape[0] > 0:
                     n = min(agents.shape[0], A)
-                    pos = agents[:n,:2]
-                    combined_type[t_idx,:n] = torch.tensor(agents[:n,2], dtype=torch.float32)
-                    combined_dist[t_idx,:n] = self.calculations.calculate_distances(src[t_idx,:2], pos)
+                    pos = agents[:n, :2]
+                    combined_type[t_idx, :n] = torch.tensor(agents[:n, 2], dtype=torch.float32)
+                    combined_dist[t_idx, :n] = self.calculations.calculate_distances(src[t_idx, :2], pos)
 
             # Agent-env distances
-            # Precompute some helpers
-            special = {9,10,11}
+            special = {9, 10, 11}
             dfv_len = len(self.df_vector)
             for t_idx in range(T):
-                agent_pos = src[t_idx,:2]
+                agent_pos = src[t_idx, :2]
                 for j, obj in enumerate(self.env):
                     obj_type = obj[4]
                     if obj[3] in special:
@@ -150,17 +131,32 @@ class TrajectoryDataset(Dataset):
                     combined_dist[t_idx, A + j] = d
                     combined_type[t_idx, A + j] = obj_type
 
-            # Split distances
-            dist_agents = combined_dist[:, :A]
-            dist_env = combined_dist[:, A:]
+            # Full combined distances / types
+            dist_combined = combined_dist.clone()
+            type_combined = combined_type.clone()
+
+            # Agent–agent only (env dims zeroed)
+            dist_agents_only = combined_dist.clone()
+            dist_agents_only[:, A:] = 0
+            type_agents_only = combined_type.clone()
+            type_agents_only[:, A:] = 0
+
+            # Agent–env only (agent dims zeroed)
+            dist_env_only = combined_dist.clone()
+            dist_env_only[:, :A] = 0
+            type_env_only = combined_type.clone()
+            type_env_only[:, :A] = 0
 
             # Prepare output
             self.start_idx += self.src_sequence_length
             return {
-                'src': src, 'tgt': tgt,
-                'dist': combined_dist,
-                'dist_type': combined_type,
-                'dist_agents': dist_agents,
-                'dist_env': dist_env,
+                'src': src,
+                'tgt': tgt,
+                'dist': dist_combined,
+                'dist_type': type_combined,
+                'dist_agents': dist_agents_only,
+                'type_agents': type_agents_only,
+                'dist_env': dist_env_only,
+                'type_env': type_env_only,
                 'timestamp': timestamps
             }

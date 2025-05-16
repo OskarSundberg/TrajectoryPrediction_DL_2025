@@ -24,7 +24,7 @@ class SEASTAREmbedding(nn.Module):
         positional_encoding_distance (torch.Tensor): Positional encoding for the distance sequence.
     """
     
-    def __init__(self, src_dims, dist_dims, type_dims, num_types, num_types_dist, sequence_length_src=10):
+    def __init__(self, src_dims, dist_dims, type_dims, num_types, num_types_dist, env_dist, sequence_length_src=10):
         """
         Initializes the embedding class with specified dimensions and sequence lengths.
         
@@ -44,13 +44,26 @@ class SEASTAREmbedding(nn.Module):
         self.src_dims = src_dims
         self.dist_dims = dist_dims
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         # Linear layers for projecting the first features of the source sequence
         self.linear_layers_src = nn.ModuleList([
             nn.Linear(1, embedding_dim)
             for embedding_dim in src_dims[:self.num_features - 1]  # Exclude the last feature for different treatment
         ])
 
+        self.type_env_distance = nn.ModuleList([
+            nn.Embedding(env_dist + 11, embedding_dim).to(self.device)
+            for embedding_dim in type_dims[:]
+        ])
+
+        self.linear_layers_env = nn.ModuleList([
+            nn.Linear(1, embedding_dim)
+            for embedding_dim in dist_dims[:]
+        ])
+
+        self.type_layers_env = nn.ModuleList([
+            nn.Embedding(env_dist + num_types , embedding_dim).to(self.device)
+            for embedding_dim in type_dims[:]
+        ])
         # Linear layers for projecting distance-related features
         self.linear_layers_distance = nn.ModuleList([
             nn.Linear(1, embedding_dim)
@@ -62,11 +75,12 @@ class SEASTAREmbedding(nn.Module):
             nn.Embedding(num_types_dist + num_types , embedding_dim).to(self.device)
             for embedding_dim in type_dims[:]
         ])
-        print("_______________")
-        print(num_types_dist)
-        print(num_types)
-        print(src_dims[-1])
-        print("_______________")
+        # print("_______________")
+        # print(num_types_dist)#9
+        # print(num_types)#4
+        # print(src_dims[-1])#4
+        # print(env_dist)#10
+        # print("_______________")
         # Embedding layer for the last categorical feature of the source sequence
         self.embedding_layer_src = nn.Embedding(num_types, src_dims[-1]).to(self.device)
 
@@ -95,74 +109,7 @@ class SEASTAREmbedding(nn.Module):
 
         return positional_encoding.unsqueeze(0).to(self.device)  # Add batch dimension
 
-    # def forward(self, input_tensor, is_src=True, src_tensor=None, type_tensor=None):
-    #     """
-    #     Forward pass for embedding input sequences, with separate handling for source and distance sequences.
-
-    #     Args:
-    #         input_tensor (torch.Tensor): Input tensor of shape (batch_size, seq_length, num_features).
-    #         is_src (bool, optional): If `True`, processes the source sequence; otherwise processes the distance sequence. Defaults to `True`.
-    #         src_tensor (torch.Tensor, optional): Tensor containing source sequence features. Defaults to `None`.
-    #         type_tensor (torch.Tensor, optional): Tensor containing categorical features for the distance sequence. Defaults to `None`.
-
-    #     Returns:
-    #         torch.Tensor: The final embedded tensor of shape (batch_size, seq_length, total_embedding_size).
-    #     """
-    #     batch_size, seq_length, num_features = input_tensor.size()
-
-    #     # Select the embedding dimensions based on whether the sequence is source or distance
-    #     embedding_dims = self.src_dims if is_src else self.dist_dims
-
-    #     # Initialize an empty tensor for the embedded output
-    #     embedded_tensor = torch.zeros(batch_size, seq_length, self.size).to(self.device)
-
-    #     # Handle source sequence embedding
-    #     if is_src:
-    #         start_index = 0
-    #         for i, linear_layer in enumerate(self.linear_layers_src):
-    #             # Linearly project each feature of the source sequence
-    #             linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1)).to(self.device)
-
-    #             # Get the embedding dimension for the current feature
-    #             embedding_dim = embedding_dims[i]
-    #             end_index = start_index + embedding_dim
-
-    #             # Place the linearly projected feature at the correct position in the embedded tensor
-    #             embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).to(self.device)
-    #             start_index = end_index
-
-    #         # Embed the last feature of the source sequence (categorical)
-    #         embedded_tensor[:, :, start_index:] = self.embedding_layer_src(input_tensor[:, :, 3].long()).to(self.device)
-
-    #     # Handle distance sequence embedding
-    #     else:
-    #         embedded_tensor = torch.zeros(batch_size, seq_length, self.size).to(self.device)
-    #         start_index = 0
-    #         for i, (linear_layer, embedding_layer) in enumerate(zip(self.linear_layers_distance, self.type_layers_distance)):
-    #             # Linearly project each feature of the distance sequence
-    #             linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1)).to(self.device)
-
-    #             # Get the embedding dimension for the current feature
-    #             embedding_dim = embedding_dims[i]
-                
-    #             # Embed the categorical features in the distance sequence
-    #             embedding_output = embedding_layer(type_tensor[:, :, i].long()).to(self.device)
-    #             embedded_tensor[:, :, start_index:start_index + embedding_output.shape[-1]] = embedding_output
-    #             start_index = start_index + embedding_output.shape[-1]
-
-    #             # Place the linearly projected distance feature into the tensor
-    #             end_index = start_index + embedding_dim
-    #             embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).to(self.device)
-    #             start_index = end_index
-
-    #     # Add positional encoding to the embeddings
-    #     positional_encoding = self.positional_encoding_src if is_src else self.positional_encoding_distance
-    #     embedded_tensor = embedded_tensor + positional_encoding
-
-    #     # Reshape the output tensor and return the final result
-    #     embedded_tensor = embedded_tensor.view(batch_size, seq_length, -1).to(self.device)
-    #     return embedded_tensor.to(self.device)
-    def forward(self, input_tensor, is_src=True, src_tensor=None, type_tensor=None):
+    def forward(self, input_tensor, is_src=True, src_tensor=None, env_tensor_flag=None, type_tensor=None):
         batch_size, seq_length, num_features = input_tensor.size()
 
         embedding_dims = self.src_dims if is_src else self.dist_dims
@@ -181,28 +128,53 @@ class SEASTAREmbedding(nn.Module):
         else:
             if type_tensor is None:
                 raise ValueError("[ERROR] type_tensor must be provided when is_src is False.")
+            elif env_tensor_flag:
+                embedded_tensor = torch.zeros(batch_size, seq_length, self.size).to(self.device)
+                start_index = 0
+                # print(input_tensor.shape)
+                # print(len(list(zip(self.linear_layers_distance, self.type_layers_distance))))
+                # print(len(self.type_layers_distance))
+                # print(len(self.linear_layers_distance))
+                # print(len(list(zip(self.linear_layers_env, self.type_layers_env))))
+                # print(len(self.type_layers_env))
+                # print(len(self.linear_layers_env))
+                # print(type_tensor)
 
-            embedded_tensor = torch.zeros(batch_size, seq_length, self.size).to(self.device)
-            start_index = 0
-            print(input_tensor.shape)
-            print(len(list(zip(self.linear_layers_distance, self.type_layers_distance))))
-            print(len(self.type_layers_distance))
-            print(len(self.linear_layers_distance))
+                for i, (linear_layer, embedding_layer) in enumerate(zip( self.type_layers_env,self.type_env_distance)):
+                    
+                    linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1).long()).to(self.device)
+                    embedding_dim = embedding_dims[i]
 
-            for i, (linear_layer, embedding_layer) in enumerate(zip(self.linear_layers_distance, self.type_layers_distance)):
-                
-                linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1).float()).to(self.device)
-                embedding_dim = embedding_dims[i]
+                    embedding_output = embedding_layer(type_tensor[:, :, i].long()).to(self.device)
 
-                embedding_output = embedding_layer(type_tensor[:, :, i].long()).to(self.device)
+                    embedded_tensor[:, :, start_index:start_index + embedding_output.shape[-1]] = embedding_output
+                    start_index = start_index + embedding_output.shape[-1]
 
-                embedded_tensor[:, :, start_index:start_index + embedding_output.shape[-1]] = embedding_output
-                start_index = start_index + embedding_output.shape[-1]
+                    end_index = start_index + embedding_dim
+                    embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).to(self.device)
+                    start_index = end_index
+            else:
+                embedded_tensor = torch.zeros(batch_size, seq_length, self.size).to(self.device)
+                start_index = 0
+                # print(input_tensor.shape)
+                # print(len(list(zip(self.linear_layers_distance, self.type_layers_distance))))
+                # print(len(self.type_layers_distance))
+                # print(len(self.linear_layers_distance))
+                # print(type_tensor)
 
-                end_index = start_index + embedding_dim
-                embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).to(self.device)
-                start_index = end_index
+                for i, (linear_layer, embedding_layer) in enumerate(zip(self.linear_layers_distance, self.type_layers_distance)):
+                    
+                    linear_output = linear_layer(input_tensor[:, :, i].view(-1, 1).float()).to(self.device)
+                    embedding_dim = embedding_dims[i]
 
+                    embedding_output = embedding_layer(type_tensor[:, :, i].long()).to(self.device)
+
+                    embedded_tensor[:, :, start_index:start_index + embedding_output.shape[-1]] = embedding_output
+                    start_index = start_index + embedding_output.shape[-1]
+
+                    end_index = start_index + embedding_dim
+                    embedded_tensor[:, :, start_index:end_index] = linear_output.view(batch_size, seq_length, embedding_dim).to(self.device)
+                    start_index = end_index
         positional_encoding = self.positional_encoding_src if is_src else self.positional_encoding_distance
         embedded_tensor = embedded_tensor + positional_encoding
         embedded_tensor = embedded_tensor.view(batch_size, seq_length, -1).to(self.device)

@@ -109,6 +109,10 @@ class Scaler:
             scaler = self.src_scaler
         elif scaler_type == "tgt":
             scaler = self.tgt_scaler
+        elif scaler_type == "env_dist":
+            scaler = self.env_dist
+        elif scaler_type == "agent_dist":
+            scaler = self.agent_dist
         else:
             scaler = self.dist_scaler
         # Flatten the data for inverse transformation
