@@ -94,10 +94,6 @@ class Experiment:
             self.model = self.seastar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout) 
                 
         self.optimizer = Adam(self.model.parameters(), lr=lr)
-        #self.optimizer = SGD(self.model.parameters(), lr=lr, momentum=0.9)  # You may adjust momentum as needed
-
-        # Initialize the scheduler: decays the LR by 5% every epoch
-        self.scheduler = ExponentialLR(self.optimizer, gamma=0.95)
 
     def create_mask(self, batch_size, sequence_length):
         """
@@ -257,9 +253,24 @@ class Experiment:
         """
         src_dims = [94, 94, 64, 4]
         total = sum(src_dims)
-        dist_dims = self.generate_embedded_dim(total / 2, graph_dims) 
-        type_dims = self.generate_embedded_dim(total / 2, graph_dims) 
-        return SEASTAR(src_dims, dist_dims, type_dims, 4, num_types, 15, hidden, layers, heads, src, tgt, dropout)
+        
+        dist_dims = self.generate_embedded_dim(total // 2, graph_dims).tolist()
+        type_dims = self.generate_embedded_dim(total // 2, graph_dims).tolist()
+        
+        return SEASTAR(
+            src_dims=src_dims,
+            dist_dims=dist_dims,
+            type_dims=type_dims,
+            num_types_src=4,
+            num_types_dist=num_types,
+            hidden=hidden,
+            num_layers=layers,
+            num_heads=heads,
+            src_len=src,
+            tgt_len=tgt,
+            dropout=dropout
+        )
+    
     def train(self, train_loader: DataLoader, epoch: int) -> float:
         """
         Trains the model for one epoch using the provided DataLoader.
@@ -319,14 +330,14 @@ class Experiment:
                 dist_env = self.scaler.scale(dist_env, "env_dist")
                 inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs.long(), distances.long(), distance_types.long(), env_dist=dist_env.long(),src_mask=src_mask.to(self.device))
+                    outputs = self.model(inputs.float(), distances.float(), distance_types.float(), env_dist=dist_env.float(),src_mask=src_mask.to(self.device))
 
 
             # Compute loss, backpropagate, and optimize
-            print(outputs.shape)
-            print(targets.shape)
-            print(outputs)
-            print(targets)
+            # print(outputs.shape)
+            # print(targets.shape)
+            # print(outputs)
+            # print(targets)
             loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
             loss.backward()  # Backpropagation
             self.optimizer.step()  # Optimization step

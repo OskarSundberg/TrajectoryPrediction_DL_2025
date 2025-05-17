@@ -128,34 +128,48 @@ roi_torpagatan = [
     {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
     ]
 
-def remove_directory_contents(directory_path):
-   # Ensure the directory exists
-   if os.path.exists(directory_path) and os.path.isdir(directory_path):
-       # Iterate over all files and directories in the specified directory
-       for item in os.listdir(directory_path):
-           item_path = os.path.join(directory_path, item)
-           # Remove files and directories
-           if os.path.isfile(item_path):
-               print(f"Deleting {item_path}")
-               os.remove(item_path)
+def vizualize_location(exp_manager : ExperimentManager, model_name : str):
+    def load_tensors(model : str, location : str):
+        pred = torch.load(f"./data/Results/{model}/{location}/pred.pt", weights_only=True)
+        tgt = torch.load(f"./data/Results/{model}/{location}/tgt.pt", weights_only=True)
+        
+        return {'pred': pred, 'tgt': tgt}
+
+    tensors = load_tensors(model=model_name, location=exp_manager.location.location_name)
+
+    exp_manager.viz.visualize_roi_valhallavagen(pred=tensors["pred"],
+                                                tgt=tensors["tgt"],
+                                                model_name=model_name,
+                                                is_pred=False)
+
+# def remove_directory_contents(directory_path):
+#    # Ensure the directory exists
+#    if os.path.exists(directory_path) and os.path.isdir(directory_path):
+#        # Iterate over all files and directories in the specified directory
+#        for item in os.listdir(directory_path):
+#            item_path = os.path.join(directory_path, item)
+#            # Remove files and directories
+#            if os.path.isfile(item_path):
+#                print(f"Deleting {item_path}")
+#                os.remove(item_path)
 
 # needed for when debugging on cpu
 #print(f"cwd = {os.getcwd()}")
-os.chdir("/home/suos21hj/viscando/TrajectoryPrediction_DL_2025/code")
-print(f"cwd = {os.getcwd()}")
+os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
+#print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
-    if True:
-       remove_directory_contents("./data/CombinedData/Torpagatan")
-       remove_directory_contents("./data/CombinedData/Valhallavagen")
+    # if False:
+    #    remove_directory_contents("./data/CombinedData/Torpagatan")
+    #    remove_directory_contents("./data/CombinedData/Valhallavagen")
     
-       remove_directory_contents("./data/Datasets/Torpagatan/Test")
-       remove_directory_contents("./data/Datasets/Torpagatan/Train")
-       remove_directory_contents("./data/Datasets/Torpagatan/Val")
+    #    remove_directory_contents("./data/Datasets/Torpagatan/Test")
+    #    remove_directory_contents("./data/Datasets/Torpagatan/Train")
+    #    remove_directory_contents("./data/Datasets/Torpagatan/Val")
     
-       remove_directory_contents("./data/Datasets/Valhallavagen/Test")
-       remove_directory_contents("./data/Datasets/Valhallavagen/Train")
-       remove_directory_contents("./data/Datasets/Valhallavagen/Val")
+    #    remove_directory_contents("./data/Datasets/Valhallavagen/Test")
+    #    remove_directory_contents("./data/Datasets/Valhallavagen/Train")
+    #    remove_directory_contents("./data/Datasets/Valhallavagen/Val")
 
     # Check if GPU is available 
 
@@ -168,16 +182,27 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 10
-    num_layers = 10
-    num_heads = 4
-    dropout = 0.6
-    learning_rate = 0.00015
+    epochs = 5
+    num_layers = 16
+    num_heads = 8
+    dropout = 0.3
+    learning_rate = 0.000015
     src_len = 10
     tgt_len = 40
-    batch_size = 128
+    batch_size = 32
     hidden_size = 512
-    earlystopping = 10
+    earlystopping = 30
+
+    # epochs = 300
+    # num_layers = 16
+    # num_heads = 8
+    # dropout = 0.3
+    # learning_rate = 0.000015
+    # src_len = 10
+    # tgt_len = 40
+    # batch_size = 32
+    # hidden_size = 512
+    # earlystopping = 30
 
     
     valhallavagen = Location(
@@ -212,6 +237,9 @@ if __name__=="__main__":
     #experiment_manager.experiment_star()
     #experiment_manager.experiment_saestar()
     experiment_manager.experiment_seastar(device=device)
+
+    #vizualize_location(exp_manager=experiment_manager, model_name="SEASTAR")
+
     del valhallavagen, viz, experiment_manager
     gc.collect()
     

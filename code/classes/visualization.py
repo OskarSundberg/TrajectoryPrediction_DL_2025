@@ -673,8 +673,6 @@ class Visualization:
         None: The plot is saved to the specified directory.
         """
         
-        roi = self.loc.roi  # Get the Region of Interest (ROI) settings
-        
         # Load and resize the image for the visualization
         img = cv2.imread(self.loc.img, 1)
         img = cv2.resize(img, (self.loc.img_size_X, self.loc.img_size_y))
@@ -689,40 +687,41 @@ class Visualization:
         plt.scatter(180, 573, color='black', s=5)
         plt.scatter(166, 674, color='black', s=5)
 
-        # Loop through all instances in the prediction and target data
-        for instance in range(pred.shape[0]):
-            pred_coords = pred[instance, :, :2].cpu().numpy()  # Get the predicted coordinates
-            tgt_coords = tgt[instance, :, :2].cpu().numpy()  # Get the ground truth coordinates
+        # loop over the 2 rois
+        for roi in self.loc.roi:
+            # Loop through all instances in the prediction and target data
+            for instance in range(pred.shape[0]):
+                pred_coords = pred[instance, :, :2].cpu().numpy()  # Get the predicted coordinates
+                tgt_coords = tgt[instance, :, :2].cpu().numpy()  # Get the ground truth coordinates
 
-            # Create masks to filter coordinates within the ROI
-            roi_mask_pred = (
-                (pred_coords[:, 0] >= roi['roi_x_min']) & (pred_coords[:, 0] <= roi['roi_x_max']) &
-                (pred_coords[:, 1] >= roi['roi_y_min']) & (pred_coords[:, 1] <= roi['roi_y_max'])
-            )
-            roi_mask_tgt = (
-                (tgt_coords[:, 0] >= roi['roi_x_min']) & (tgt_coords[:, 0] <= roi['roi_x_max']) &
-                (tgt_coords[:, 1] >= roi['roi_y_min']) & (tgt_coords[:, 1] <= roi['roi_y_max'])
-            )
+                # Create masks to filter coordinates within the ROI
+                roi_mask_pred = (
+                    (pred_coords[:, 0] >= roi['roi_x_min']) & (pred_coords[:, 0] <= roi['roi_x_max']) &
+                    (pred_coords[:, 1] >= roi['roi_y_min']) & (pred_coords[:, 1] <= roi['roi_y_max'])
+                )
+                roi_mask_tgt = (
+                    (tgt_coords[:, 0] >= roi['roi_x_min']) & (tgt_coords[:, 0] <= roi['roi_x_max']) &
+                    (tgt_coords[:, 1] >= roi['roi_y_min']) & (tgt_coords[:, 1] <= roi['roi_y_max'])
+                )
 
-            # Apply the masks to get the filtered coordinates
-            filtered_pred_coords = pred_coords[roi_mask_pred] if np.any(roi_mask_pred) else np.array([]).reshape(0, 2)
-            filtered_tgt_coords = tgt_coords[roi_mask_tgt] if np.any(roi_mask_tgt) else np.array([]).reshape(0, 2)
+                # Apply the masks to get the filtered coordinates
+                filtered_pred_coords = pred_coords[roi_mask_pred] if np.any(roi_mask_pred) else np.array([]).reshape(0, 2)
+                filtered_tgt_coords = tgt_coords[roi_mask_tgt] if np.any(roi_mask_tgt) else np.array([]).reshape(0, 2)
 
-            # Plot the filtered coordinates (either prediction or ground truth)
+                # Plot the filtered coordinates (either prediction or ground truth)
+                if is_pred:
+                    if filtered_pred_coords.size > 0:
+                        plt.plot(filtered_pred_coords[:, 0], filtered_pred_coords[:, 1], color='red', linewidth=0.1)
+                else:
+                    if filtered_tgt_coords.size > 0:
+                        plt.plot(filtered_tgt_coords[:, 0], filtered_tgt_coords[:, 1], color='green', linewidth=0.1)
+
+            # Get the location name from the ROI for labeling
+            location = roi['location']
+            # Finalize the plot
             if is_pred:
-                if filtered_pred_coords.size > 0:
-                    plt.plot(filtered_pred_coords[:, 0], filtered_pred_coords[:, 1], color='red', linewidth=0.1)
+                plt.title('Visualization of Predictions in ROI')
+                plt.savefig(f'./data/Results/{model_name}/{self.loc.location_name}/ROI__prediction_{location}.png')
             else:
-                if filtered_tgt_coords.size > 0:
-                    plt.plot(filtered_tgt_coords[:, 0], filtered_tgt_coords[:, 1], color='green', linewidth=0.1)
-
-        # Get the location name from the ROI for labeling
-        location = roi['location']
-
-        # Finalize the plot
-        if is_pred:
-            plt.title('Visualization of Predictions in ROI')
-            plt.savefig(f'/data/Results/{model_name}/{self.loc.location_name}/ROI__prediction_{location}.png')
-        else:
-            plt.title('Visualization of Ground Truth in ROI')
-            plt.savefig(f'/data/Results/{model_name}/{self.loc.location_name}/ROI_actual_{location}.png')
+                plt.title('Visualization of Ground Truth in ROI')
+                plt.savefig(f'./data/Results/{model_name}/{self.loc.location_name}/ROI_actual_{location}.png')

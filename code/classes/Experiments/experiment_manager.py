@@ -398,7 +398,7 @@ class ExperimentManager:
         val_dataset = STARDataset(val, self.location.num_agents)
         test_dataset = STARDataset(test, self.location.num_agents)
         
-        print(train_dataset[0])
+        #print(train_dataset[0])
         # Scaling data and creating DataLoaders
         scaler = Scaler(train, model_name, True, graph_dims)
         train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
@@ -428,7 +428,7 @@ class ExperimentManager:
         train_dataset = SAESTARDataset(train)
         ### remove later
         #np.savetxt("train_data.txt", train_dataset[0], fmt='%s')
-        print(train_dataset[1])
+        #print(train_dataset[1])
         val_dataset = SAESTARDataset(val)
         test_dataset = SAESTARDataset(test)
         
@@ -456,9 +456,10 @@ class ExperimentManager:
         val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True, sea_star=True)
         test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True, sea_star=True)
         df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
-        num_types = df_env['Type'].max()
-        print(num_types)
-        print("blalbla")
+        max_label = int(df_env['Type'].max())
+        num_types = max_label + 1   # ensure embedding can index up to max_label
+        # print(num_types)
+        # print("blalbla")
         #num_types = 4 + len(df_env['ID'].unique())
         #print(num_types)
         graph_dims = len(train['distance'][0, 0, :])
@@ -469,7 +470,7 @@ class ExperimentManager:
         # Scaling data and creating DataLoaders
         scaler = Scaler(train, model_name, True)
         train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
-        print("blalbl")
+        #print("blalbl")
         # Running the experiment
         self.run_experiment(model_name, scaler, train_dataloader, val_dataloader, test_dataloader, num_types=num_types, graph_dims=graph_dims)
         
