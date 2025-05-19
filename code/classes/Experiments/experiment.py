@@ -95,24 +95,24 @@ class Experiment:
             self.model = self.seastar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout) 
 
             # ─────── torchinfo summary ───────
-            try:
-                from torchinfo import summary
-                # build dummy inputs
-                B, S = 1, src_len
-                F_in = len(self.model.embedding_layer.src_dims)  # 4
-                G    = graph_dims
-                dummy_src       = torch.zeros(B, S, F_in, device=self.device)
-                dummy_dist      = torch.zeros(B, S, G,    device=self.device)
-                dummy_type_dist = torch.zeros(B, S, G, dtype=torch.long, device=self.device)
-                dummy_env_dist  = torch.zeros(B, S, G,    device=self.device)
+            # try:
+            #     from torchinfo import summary
+            #     # build dummy inputs
+            #     B, S = 1, src_len
+            #     F_in = 4 # len(self.model.embedding_layer.src_dims)
+            #     G    = graph_dims
+            #     dummy_src       = torch.zeros(B, S, F_in, device=self.device)
+            #     dummy_dist      = torch.zeros(B, S, G,    device=self.device)
+            #     dummy_type_dist = torch.zeros(B, S, G, dtype=torch.long, device=self.device)
+            #     dummy_env_dist  = torch.zeros(B, S, G,    device=self.device)
 
-                print("\n=== SEASTAR Model Summary (torchinfo) ===")
-                summary(self.model,
-                        input_data=(dummy_src, dummy_dist, dummy_type_dist, dummy_env_dist),
-                        col_names=["input_size","output_size","num_params"],
-                        depth=1)
-            except ImportError:
-                print("⚠️ torchinfo not installed; skipping summary")
+            #     print("\n=== SEASTAR Model Summary (torchinfo) ===")
+            #     summary(self.model,
+            #             input_data=(dummy_src, dummy_dist, dummy_type_dist, dummy_env_dist),
+            #             col_names=["input_size","output_size","num_params"],
+            #             depth=1)
+            # except ImportError:
+            #     print("⚠️ torchinfo not installed; skipping summary")
             
             # # ─────── Torchviz graph ───────
             # try:
@@ -334,12 +334,14 @@ class Experiment:
         
         dist_dims = self.generate_embedded_dim(total // 2, graph_dims).tolist()
         type_dims = self.generate_embedded_dim(total // 2, graph_dims).tolist()
+        env_dims  = self.generate_embedded_dim(total // 2, graph_dims).tolist()
         
         return SEASTAR(
             src_dims=src_dims,
             dist_dims=dist_dims,
             type_dims=type_dims,
-            num_types_src=4,
+            env_dims=env_dims,
+            num_types=num_types,
             num_types_dist=num_types,
             hidden=hidden,
             num_layers=layers,
@@ -417,14 +419,18 @@ class Experiment:
             # print(outputs)
             # print(targets)
             loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
+            
+            # accumulate *sum* of losses weighted by sample count
+            train_loss_sum += loss.item() * batch_size
+            samples_processed += batch_size
+
+            # display the true average loss per sample so far
+            avg_loss = train_loss_sum / samples_processed
+            progress_bar.set_postfix({'Training Loss': avg_loss})
+            
             loss.backward()  # Backpropagation
             self.optimizer.step()  # Optimization step
             
-            # Accumulate loss and update progress bar
-            train_loss += loss.item()
-            progress_bar.set_postfix({'Training Loss': train_loss / ((batch_idx + 1) * len(inputs))})
-
-
         return train_loss
 
     

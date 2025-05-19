@@ -182,14 +182,14 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 1
+    epochs = 4
     num_layers = 16
     num_heads = 8
     dropout = 0.3
     learning_rate = 0.000015
     src_len = 10
     tgt_len = 40
-    batch_size = 32
+    batch_size = 64
     hidden_size = 512
     earlystopping = 30
 

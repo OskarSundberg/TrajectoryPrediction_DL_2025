@@ -7,7 +7,8 @@ class SEASTAREmbedding(nn.Module):
         src_dims: list[int],
         dist_dims: list[int],
         type_dims: list[int],
-        num_types_src: int,
+        env_dims:  list[int],
+        num_types_src:  int,
         num_types_dist: int,
         sequence_length_src: int = 10
     ):
@@ -26,13 +27,18 @@ class SEASTAREmbedding(nn.Module):
         ])
         self.embedding_src = nn.Embedding(num_types_src, src_dims[-1]).to(self.device)
 
-        # === Distance embeddings ===
+        # === Distance embeddings (agent–agent) ===
         self.linear_layers_dist = nn.ModuleList([
             nn.Linear(1, d) for d in dist_dims
         ])
         self.embedding_layers_dist = nn.ModuleList([
             nn.Embedding(num_types_dist, d) for d in type_dims
         ]).to(self.device)
+
+         # === Environment embeddings (agent–env) ===
+        self.linear_layers_env = nn.ModuleList([
+            nn.Linear(1, d) for d in env_dims
+        ])
 
         # === Positional encoding ===
         self.positional_encoding = self._generate_positional_encoding(
@@ -51,10 +57,10 @@ class SEASTAREmbedding(nn.Module):
 
     def forward(
         self,
-        src: torch.Tensor,        # (B, S, 4)  last dim: [X,Y,Speed,Type]
-        dist: torch.Tensor,       # (B, S, G)  numerical agent–agent dists
-        type_dist: torch.Tensor,  # (B, S, G)  categorical agent–agent types
-        env_dist: torch.Tensor    # (B, S, G)  numerical agent–env dists
+        src: torch.Tensor,           # (B, S=src_len, F_src)
+        dist: torch.Tensor,          # (B, S, G) numeric agent–agent
+        type_dist: torch.Tensor,     # (B, S, G) categorical agent–agent
+        env_dist: torch.Tensor       # (B, S, G) numeric agent–env
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         B, S, _ = src.shape
         D = self.embedding_size
@@ -87,7 +93,7 @@ class SEASTAREmbedding(nn.Module):
         # --- Environment (numeric only) ---
         env_emb = torch.zeros(B, S, D, device=self.device)
         idx = 0
-        for i, linear in enumerate(self.linear_layers_dist):
+        for i, linear in enumerate(self.linear_layers_env):
             n = linear(env_dist[:, :, i].unsqueeze(-1))
             nd = n.size(-1)
             env_emb[:, :, idx:idx+nd] = n.view(B, S, nd)
