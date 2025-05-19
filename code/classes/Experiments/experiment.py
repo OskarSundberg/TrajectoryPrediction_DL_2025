@@ -414,22 +414,13 @@ class Experiment:
 
 
             # Compute loss, backpropagate, and optimize
-            # print(outputs.shape)
-            # print(targets.shape)
-            # print(outputs)
-            # print(targets)
             loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
-            
-            # accumulate *sum* of losses weighted by sample count
-            train_loss_sum += loss.item() * batch_size
-            samples_processed += batch_size
-
-            # display the true average loss per sample so far
-            avg_loss = train_loss_sum / samples_processed
-            progress_bar.set_postfix({'Training Loss': avg_loss})
-            
             loss.backward()  # Backpropagation
             self.optimizer.step()  # Optimization step
+            
+            # Accumulate loss and update progress bar
+            train_loss += loss.item()
+            progress_bar.set_postfix({'Training Loss': train_loss / ((batch_idx + 1) * len(inputs))})
             
         return train_loss
 
