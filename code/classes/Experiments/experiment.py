@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim
+import torch.onnx
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -92,7 +93,84 @@ class Experiment:
             self.model = self.saestar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout)
         if model_name == "SEASTAR":
             self.model = self.seastar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout) 
-                
+
+            # ─────── torchinfo summary ───────
+            try:
+                from torchinfo import summary
+                # build dummy inputs
+                B, S = 1, src_len
+                F_in = len(self.model.embedding_layer.src_dims)  # 4
+                G    = graph_dims
+                dummy_src       = torch.zeros(B, S, F_in, device=self.device)
+                dummy_dist      = torch.zeros(B, S, G,    device=self.device)
+                dummy_type_dist = torch.zeros(B, S, G, dtype=torch.long, device=self.device)
+                dummy_env_dist  = torch.zeros(B, S, G,    device=self.device)
+
+                print("\n=== SEASTAR Model Summary (torchinfo) ===")
+                summary(self.model,
+                        input_data=(dummy_src, dummy_dist, dummy_type_dist, dummy_env_dist),
+                        col_names=["input_size","output_size","num_params"],
+                        depth=1)
+            except ImportError:
+                print("⚠️ torchinfo not installed; skipping summary")
+            
+            # # ─────── Torchviz graph ───────
+            # try:
+            #     from torchviz import make_dot
+
+            #     # 1) do a dummy forward pass (on CPU for simplicity)
+            #     self.model.cpu()
+            #     dummy_out = self.model(
+            #         dummy_src.cpu(),
+            #         dummy_dist.cpu(),
+            #         dummy_type_dist.cpu(),
+            #         dummy_env_dist.cpu()
+            #     )
+
+            #     # 2) build and save the graph
+            #     dot = make_dot(dummy_out, params=dict(self.model.named_parameters()))
+            #     dot.format = "png"
+            #     dot.render("seastar_torchviz", cleanup=True)
+            #     print("✅ Torchviz graph saved as seastar_torchviz.png")
+
+            # except ImportError:
+            #     print("⚠️ torchviz not installed; skipping detailed graph")
+            # except Exception as e:
+            #     print(f"⚠️ torchviz graph build failed: {e}")
+
+
+            # # ───────   ONNX EXPORT HOOK   ───────
+            # # 1) reload the right num_types_dist
+            # df_env = pd.read_csv(f"./data/CombinedData/{self.location_name}/env_df.csv")
+            # num_types_dist = int(df_env['Type'].max()) + 1
+
+            # # 2) create dummy inputs
+            # B, S = 1, src_len
+            # F_in = 4
+            # G     = graph_dims
+            # dummy_src       = torch.randn(B, S, F_in, device=self.device)
+            # dummy_dist      = torch.randn(B, S, G,     device=self.device)
+            # dummy_type_dist = torch.randint(0, num_types_dist, (B, S, G), device=self.device)
+            # dummy_env_dist  = torch.randn(B, S, G,     device=self.device)
+
+            # # 3) export to ONNX
+            # torch.onnx.export(
+            #     self.model.cpu(),  # move to CPU for export
+            #     (dummy_src.cpu(), dummy_dist.cpu(), dummy_type_dist.cpu(), dummy_env_dist.cpu()),
+            #     f"./seastar_model.onnx",
+            #     input_names  = ["src", "dist", "type_dist", "env_dist"],
+            #     output_names = ["prediction"],
+            #     opset_version=14,
+            #     dynamic_axes = {
+            #       "src":       {0: "batch", 1: "src_len"},
+            #       "dist":      {0: "batch", 1: "src_len"},
+            #       "type_dist": {0: "batch", 1: "src_len"},
+            #       "env_dist":  {0: "batch", 1: "src_len"},
+            #       "prediction":{0: "batch", 1: "tgt_len"}
+            #     }
+            # )
+            # print("→ ONNX model written to ./seastar_model.onnx")
+
         self.optimizer = Adam(self.model.parameters(), lr=lr)
 
     def create_mask(self, batch_size, sequence_length):
@@ -328,7 +406,7 @@ class Experiment:
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 distances = self.scaler.scale(dist_agents, "agent_dist")
                 dist_env = self.scaler.scale(dist_env, "env_dist")
-                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 3:].to(self.device)), dim=2)
                 with autocast(dtype=torch.float16):
                     outputs = self.model(inputs.float(), distances.float(), distance_types.float(), env_dist=dist_env.float(),src_mask=src_mask.to(self.device))
 
@@ -400,7 +478,7 @@ class Experiment:
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
                     distances = self.scaler.scale(dist_agents, "agent_dist")
                     dist_env = self.scaler.scale(dist_env, "env_dist")
-                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 3:].to(self.device)), dim=2)
                     with autocast(dtype=torch.float16):
                         outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
 

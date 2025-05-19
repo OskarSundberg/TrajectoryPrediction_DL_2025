@@ -182,7 +182,7 @@ if __name__=="__main__":
     # Create a manual seed for testing
     torch.manual_seed(42)
     
-    epochs = 5
+    epochs = 1
     num_layers = 16
     num_heads = 8
     dropout = 0.3
