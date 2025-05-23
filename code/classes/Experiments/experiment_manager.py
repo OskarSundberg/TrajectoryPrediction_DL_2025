@@ -22,6 +22,7 @@ from classes.Datasets.trajectory_dataset import TrajectoryDataset
 from classes.Datasets.transformer_dataset import TransformerDataset
 from classes.Datasets.star_dataset import STARDataset
 from classes.Datasets.saestar_dataset import SAESTARDataset
+from classes.Datasets.seastar_dataset import SEASTARDataset
 from classes.Experiments.experiment import Experiment
 
 class ExperimentManager:
@@ -41,7 +42,8 @@ class ExperimentManager:
         tgt_len: int, 
         batch_size: int,
         hidden_size: int,
-        earlystopping : int
+        earlystopping : int,
+        seed
     ):
         """
         Initialize the ExperimentManager with necessary configurations and perform initial visualizations.
@@ -71,6 +73,7 @@ class ExperimentManager:
         self.earlystopping = earlystopping
         self.src_len = src_len
         self.tgt_len = tgt_len
+        self.seed = seed
         
         # Perform initial visualizations for trajectory, time distribution, and counts
         self.viz.visualize_all_trajectories()
@@ -273,24 +276,30 @@ class ExperimentManager:
         tgt = np.array([sample['tgt'] for sample in data], dtype=np.float64)
         dist = np.array([sample['dist'] for sample in data], dtype=np.float64)
         dist_type = np.array([sample['dist_type'] for sample in data], dtype=np.float64)
+        dist_agents = np.array([sample['dist_agents'] for sample in data], dtype=np.float64)
+        dist_env = np.array([sample['dist_env'] for sample in data], dtype=np.float64)
 
         # Extracting data components and converting them into tensors
         src = torch.tensor(src, dtype=torch.float64).to(torch.float32)
         tgt = torch.tensor(tgt, dtype=torch.float64).to(torch.float32)
         dist = torch.tensor(dist, dtype=torch.float64).to(torch.float32)
         dist_type = torch.tensor(dist_type, dtype=torch.float64).to(torch.float32)
-        
+        dist_agents = torch.tensor(dist_agents, dtype=torch.float64).to(torch.float32)
+        dist_env = torch.tensor(dist_env, dtype=torch.float64).to(torch.float32)
         # Saving tensors to disk
         torch.save(src, f"./data/Datasets/{self.location.location_name}/{data_type}/src.pt")
         torch.save(tgt, f"./data/Datasets/{self.location.location_name}/{data_type}/tgt.pt")
         torch.save(dist, f"./data/Datasets/{self.location.location_name}/{data_type}/dist.pt")
         torch.save(dist_type, f"./data/Datasets/{self.location.location_name}/{data_type}/dist_type.pt")
+        torch.save(dist_env, f"./data/Datasets/{self.location.location_name}/{data_type}/dist_env.pt")
+        torch.save(dist_agents, f"./data/Datasets/{self.location.location_name}/{data_type}/dist_agents.pt")
+        
         
         # Freeing up memory
         del src, tgt, dist, dist_type
         gc.collect()
     
-    def load_tensors(self, model_name : str, data_type : str, spatial : bool=False):
+    def load_tensors(self, model_name : str, data_type : str, spatial : bool=False, sea_star : bool=False):
         """
         Loads tensors from disk for a given model and data type, optionally including spatial data.
 
@@ -312,6 +321,10 @@ class ExperimentManager:
             # Loading additional spatial data if requested
             dist = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist.pt", weights_only=True)
             d_type = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_type.pt", weights_only=True)
+            if sea_star:
+                dist_env = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_env.pt", weights_only=True)
+                dist_agents = torch.load(f"./data/Datasets/{self.location.location_name}/{data_type}/dist_agents.pt", weights_only=True)
+                return {'src': src, 'tgt': tgt, 'distance': dist, 'type': d_type, 'dist_env': dist_env, 'dist_agents': dist_agents}
             return {'src': src, 'tgt': tgt, 'distance': dist, 'type': d_type}
         else:
             return {'src': src, 'tgt': tgt}
@@ -387,6 +400,7 @@ class ExperimentManager:
         val_dataset = STARDataset(val, self.location.num_agents)
         test_dataset = STARDataset(test, self.location.num_agents)
         
+        #print(train_dataset[0])
         # Scaling data and creating DataLoaders
         scaler = Scaler(train, model_name, True, graph_dims)
         train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
@@ -414,6 +428,9 @@ class ExperimentManager:
         num_types = df_env['Type'].max()
         graph_dims = len(train['distance'][0, 0, :])
         train_dataset = SAESTARDataset(train)
+        ### remove later
+        #np.savetxt("train_data.txt", train_dataset[0], fmt='%s')
+        #print(train_dataset[1])
         val_dataset = SAESTARDataset(val)
         test_dataset = SAESTARDataset(test)
         
@@ -427,6 +444,42 @@ class ExperimentManager:
         # Cleaning up memory
         del scaler, train, val, test, train_dataloader, test_dataloader, val_dataloader
         gc.collect()
+            
+    def experiment_seastar(self, device):
+        """
+        Runs the SEASTAR experiment, handling data preparation and experiment execution.
+        """
+        model_name = 'SEASTAR'
+        print("SEASTAR Experiment Starting")
+        print("-" * 30)
+        
+        # Loading and preparing data
+        train = self.load_tensors(model_name=model_name, data_type="Train", spatial=True, sea_star=True)
+        val = self.load_tensors(model_name=model_name, data_type="Val", spatial=True, sea_star=True)
+        test = self.load_tensors(model_name=model_name, data_type="Test", spatial=True, sea_star=True)
+        df_env = pd.read_csv(f"./data/CombinedData/{self.location.location_name}/env_df.csv", sep=',')
+        max_label = int(df_env['Type'].max())
+        num_types = max_label + 1   # ensure embedding can index up to max_label
+        # print(num_types)
+        # print("blalbla")
+        #num_types = 4 + len(df_env['ID'].unique())
+        #print(num_types)
+        graph_dims = len(train['distance'][0, 0, :])
+        train_dataset = SEASTARDataset(train)
+        val_dataset = SEASTARDataset(val)
+        test_dataset = SEASTARDataset(test)
+        
+        # Scaling data and creating DataLoaders
+        scaler = Scaler(train, model_name, True)
+        train_dataloader, val_dataloader, test_dataloader = self.get_data_loaders(train_dataset, val_dataset, test_dataset)
+        #print("blalbl")
+        # Running the experiment
+        self.run_experiment(model_name, scaler, train_dataloader, val_dataloader, test_dataloader, num_types=num_types, graph_dims=graph_dims)
+        
+        # Cleaning up memory
+        del scaler, train, val, test, train_dataloader, test_dataloader, val_dataloader
+        gc.collect()
+    
     
     def run_experiment(self, model_name, scaler, train, val, test, num_types, graph_dims):
         """
@@ -456,7 +509,8 @@ class ExperimentManager:
             lr=self.lr,
             epochs=self.epochs,
             location_name=self.location.location_name,
-            earlystopping=self.earlystopping
+            earlystopping=self.earlystopping,
+            seed=self.seed
         )
         
         # Training and testing the model

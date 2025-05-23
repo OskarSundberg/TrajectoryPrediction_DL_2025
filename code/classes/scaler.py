@@ -17,6 +17,8 @@ class Scaler:
         train_data (dict): A dictionary containing training data with keys 'src', 'tgt', and 'distance'.
         spatial (bool): If True, a scaler for distance data is also created (default: False).
         """
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.spatial = False  # Default spatial scaling is turned off
         # Create and fit the scaler for the source data (first 3 columns of 'src')
         self.src_scaler = self.create_scaler(train_data['src'][:, :, :3])
@@ -26,8 +28,12 @@ class Scaler:
         if spatial:
             if model_name == "STAR":
                 self.dist_scaler = self.create_scaler(train_data['distance'][:, :, :size])
-            else:
+            elif model_name == "SAESTAR":
                 self.dist_scaler = self.create_scaler(train_data['distance'])
+            elif model_name == "SEASTAR":
+                self.dist_scaler = self.create_scaler(train_data['distance'])
+                self.env_dist = self.create_scaler(train_data['dist_env'])
+                self.agent_dist = self.create_scaler(train_data['dist_agents'])
     def create_scaler(self, data):
         """
         Creates and fits a MinMaxScaler to the provided data.
@@ -62,6 +68,7 @@ class Scaler:
         Returns:
         torch.Tensor: Scaled data in the original shape.
         """
+        
         # Select the appropriate scaler based on the input type
         if scaler_type == "src":
             scaler = self.src_scaler
@@ -69,7 +76,10 @@ class Scaler:
             scaler = self.tgt_scaler
         elif scaler_type == "dist":
             scaler = self.dist_scaler
-        
+        elif scaler_type == "env_dist":
+            scaler = self.env_dist
+        elif scaler_type == "agent_dist":
+            scaler = self.agent_dist
         # Get the shape of the input data
         shape = data.shape
         # Flatten the data into 2D for scaling
@@ -77,7 +87,7 @@ class Scaler:
         # Clip the data to avoid extreme values that could distort scaling
         data_clipped = np.clip(np.array(data_flat.cpu(), dtype=np.float32), -1e6, 1e6)
         # Transform the data using the fitted scaler
-        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32).cuda()
+        data_scaled = torch.tensor(scaler.transform(data_clipped), dtype=torch.float32).to(self.device)
         # Reshape the data back to its original shape
         reshaped_data = data_scaled.reshape(shape)
         return reshaped_data
@@ -99,12 +109,16 @@ class Scaler:
             scaler = self.src_scaler
         elif scaler_type == "tgt":
             scaler = self.tgt_scaler
+        elif scaler_type == "env_dist":
+            scaler = self.env_dist
+        elif scaler_type == "agent_dist":
+            scaler = self.agent_dist
         else:
             scaler = self.dist_scaler
         # Flatten the data for inverse transformation
         data_flatten = data.reshape(data.shape[0] * data.shape[1], data.shape[2])
         # Inverse transform the data to the original scale
-        data_unscaled = torch.tensor(scaler.inverse_transform(np.array(data_flatten.cpu()))).cuda()
+        data_unscaled = torch.tensor(scaler.inverse_transform(np.array(data_flatten.cpu()))).to(self.device)
         # Reshape the unscaled data back to the original shape
         return data_unscaled.reshape(original_shape)
         

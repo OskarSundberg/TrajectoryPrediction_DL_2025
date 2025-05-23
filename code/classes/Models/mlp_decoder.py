@@ -29,12 +29,15 @@ class MLPDecoder(nn.Module):
             dropout (float): Dropout probability for regularization.
         """
         super(MLPDecoder, self).__init__()
+        
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # First fully connected layer: input_size -> hidden_size
-        self.fc1 = nn.Linear(input_size, hidden_size).cuda()
+        self.fc1 = nn.Linear(input_size, hidden_size).to(self.device)
         
         # Second fully connected layer: hidden_size -> output_size
-        self.fc2 = nn.Linear(hidden_size, output_size).cuda()
+        self.fc2 = nn.Linear(hidden_size, output_size).to(self.device)
         
         # Dropout layer for regularization after input
         self.dropout = nn.Dropout(p=dropout)
@@ -57,21 +60,21 @@ class MLPDecoder(nn.Module):
             torch.Tensor: Output tensor of shape (batch_size, output_size).
         """
         # Apply dropout to the input
-        x = self.dropout(x).cuda()
+        x = self.dropout(x).to(self.device)
         
         # Apply ReLU activation
-        x = self.relu(x).cuda()
+        x = self.relu(x).to(self.device)
         
         # First fully connected layer
-        x = self.fc1(x).cuda()
+        x = self.fc1(x).to(self.device)
         
         # Additional dropout after the first FC layer
-        x = self.dropout1(x).cuda()
+        x = self.dropout1(x).to(self.device)
         
         # Additional ReLU activation
-        x = self.relu1(x).cuda()
+        x = self.relu1(x).to(self.device)
         
         # Second fully connected layer (output layer)
-        x = self.fc2(x).cuda()
+        x = self.fc2(x).to(self.device)
         
         return x

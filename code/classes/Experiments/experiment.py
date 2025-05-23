@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim
+import torch.onnx
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -11,11 +12,14 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.cuda.amp import autocast
 
 from classes.scaler import Scaler
-
+from torch.optim.lr_scheduler import ExponentialLR
+from torch.optim import SGD
 from classes.Models.base_model import TransformerBase
 from classes.Models.transformer_model import Transformer
 from classes.Models.star_model import STAR
 from classes.Models.saestar_model import SAESTAR
+from classes.Models.seastar_model import SEASTAR
+
 
 import torch
 from torchviz import make_dot
@@ -51,6 +55,7 @@ class Experiment:
         model_name: str, 
         src_len: int, 
         tgt_len: int, 
+        seed,
         num_types: int = None, 
         graph_dims: int = None, 
         layers: int = 16, 
@@ -76,6 +81,8 @@ class Experiment:
         self.early_stopping_patience = earlystopping
         self.optimizer = None
         self.model = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.seed = seed
         
         # Select the model architecture based on the model_name
         if model_name == "Base":
@@ -86,8 +93,86 @@ class Experiment:
             self.model = self.star_model(src_len, tgt_len, graph_dims, hidden_size, layers, heads, dropout)
         if model_name == "SAESTAR":
             self.model = self.saestar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout)
-        
-        # Initialize the optimizer
+        if model_name == "SEASTAR":
+            self.model = self.seastar_model(src_len, tgt_len, graph_dims, num_types, hidden_size, layers, heads, dropout) 
+
+            # ─────── torchinfo summary ───────
+            # try:
+            #     from torchinfo import summary
+            #     # build dummy inputs
+            #     B, S = 1, src_len
+            #     F_in = 4 # len(self.model.embedding_layer.src_dims)
+            #     G    = graph_dims
+            #     dummy_src       = torch.zeros(B, S, F_in, device=self.device)
+            #     dummy_dist      = torch.zeros(B, S, G,    device=self.device)
+            #     dummy_type_dist = torch.zeros(B, S, G, dtype=torch.long, device=self.device)
+            #     dummy_env_dist  = torch.zeros(B, S, G,    device=self.device)
+
+            #     print("\n=== SEASTAR Model Summary (torchinfo) ===")
+            #     summary(self.model,
+            #             input_data=(dummy_src, dummy_dist, dummy_type_dist, dummy_env_dist),
+            #             col_names=["input_size","output_size","num_params"],
+            #             depth=1)
+            # except ImportError:
+            #     print("⚠️ torchinfo not installed; skipping summary")
+            
+            # # ─────── Torchviz graph ───────
+            # try:
+            #     from torchviz import make_dot
+
+            #     # 1) do a dummy forward pass (on CPU for simplicity)
+            #     self.model.cpu()
+            #     dummy_out = self.model(
+            #         dummy_src.cpu(),
+            #         dummy_dist.cpu(),
+            #         dummy_type_dist.cpu(),
+            #         dummy_env_dist.cpu()
+            #     )
+
+            #     # 2) build and save the graph
+            #     dot = make_dot(dummy_out, params=dict(self.model.named_parameters()))
+            #     dot.format = "png"
+            #     dot.render("seastar_torchviz", cleanup=True)
+            #     print("✅ Torchviz graph saved as seastar_torchviz.png")
+
+            # except ImportError:
+            #     print("⚠️ torchviz not installed; skipping detailed graph")
+            # except Exception as e:
+            #     print(f"⚠️ torchviz graph build failed: {e}")
+
+
+            # # ───────   ONNX EXPORT HOOK   ───────
+            # # 1) reload the right num_types_dist
+            # df_env = pd.read_csv(f"./data/CombinedData/{self.location_name}/env_df.csv")
+            # num_types_dist = int(df_env['Type'].max()) + 1
+
+            # # 2) create dummy inputs
+            # B, S = 1, src_len
+            # F_in = 4
+            # G     = graph_dims
+            # dummy_src       = torch.randn(B, S, F_in, device=self.device)
+            # dummy_dist      = torch.randn(B, S, G,     device=self.device)
+            # dummy_type_dist = torch.randint(0, num_types_dist, (B, S, G), device=self.device)
+            # dummy_env_dist  = torch.randn(B, S, G,     device=self.device)
+
+            # # 3) export to ONNX
+            # torch.onnx.export(
+            #     self.model.cpu(),  # move to CPU for export
+            #     (dummy_src.cpu(), dummy_dist.cpu(), dummy_type_dist.cpu(), dummy_env_dist.cpu()),
+            #     f"./seastar_model.onnx",
+            #     input_names  = ["src", "dist", "type_dist", "env_dist"],
+            #     output_names = ["prediction"],
+            #     opset_version=14,
+            #     dynamic_axes = {
+            #       "src":       {0: "batch", 1: "src_len"},
+            #       "dist":      {0: "batch", 1: "src_len"},
+            #       "type_dist": {0: "batch", 1: "src_len"},
+            #       "env_dist":  {0: "batch", 1: "src_len"},
+            #       "prediction":{0: "batch", 1: "tgt_len"}
+            #     }
+            # )
+            # print("→ ONNX model written to ./seastar_model.onnx")
+
         self.optimizer = Adam(self.model.parameters(), lr=lr)
 
     def create_mask(self, batch_size, sequence_length):
@@ -126,7 +211,7 @@ class Experiment:
         array = [initial_value] * array_length
         array[-1] += remainder
         
-        return torch.tensor(array, dtype=torch.int).cuda()
+        return torch.tensor(array, dtype=torch.int).to(self.device)
     
     def base_model(self, src, tgt, hidden, layers, heads, dropout) -> nn.Module:
         """
@@ -228,6 +313,46 @@ class Experiment:
         type_dims = self.generate_embedded_dim(total / 2, graph_dims) 
         return SAESTAR(src_dims, dist_dims, type_dims, 4, num_types, hidden, layers, heads, src, tgt, dropout)
     
+
+    def seastar_model(self, src, tgt, graph_dims, num_types, hidden, layers, heads, dropout) -> nn.Module:
+        """
+        Creates and returns a SEASTAR model.
+        
+        Args:
+            src (int): The source sequence length.
+            tgt (int): The target sequence length.
+            graph_dims (int): The graph dimensions.
+            num_types (int): The number of types in the model.
+            hidden (int): The hidden layer size.
+            layers (int): The number of layers in the model.
+            heads (int): The number of attention heads.
+            dropout (float): The dropout rate.
+        
+        Returns:
+            nn.Module: The instantiated SAESTAR model.
+        """
+        src_dims = [94, 94, 64, 4]
+        total = sum(src_dims)
+        
+        dist_dims = self.generate_embedded_dim(total // 2, graph_dims).tolist()
+        type_dims = self.generate_embedded_dim(total // 2, graph_dims).tolist()
+        env_dims  = self.generate_embedded_dim(total // 2, graph_dims).tolist()
+        
+        return SEASTAR(
+            src_dims=src_dims,
+            dist_dims=dist_dims,
+            type_dims=type_dims,
+            env_dims=env_dims,
+            num_types=num_types,
+            num_types_dist=num_types,
+            hidden=hidden,
+            num_layers=layers,
+            num_heads=heads,
+            src_len=src,
+            tgt_len=tgt,
+            dropout=dropout
+        )
+    
     def train(self, train_loader: DataLoader, epoch: int) -> float:
         """
         Trains the model for one epoch using the provided DataLoader.
@@ -251,33 +376,44 @@ class Experiment:
             
             # Handle different model types
             if self.model_type == 'Base':
-                inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                inputs, targets = batch['src'].to(self.device), batch['tgt'].to(self.device)
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                 inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
             
             elif self.model_type == 'Transformer':
-                inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                inputs, targets = batch['src'].to(self.device), batch['tgt'].to(self.device)
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs, targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
             
             elif self.model_type in ['STAR', 'SAESTAR']:
-                inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
+                inputs, targets, distances, distance_types = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long() 
                 src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                 scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                 targets = self.scaler.scale(targets[:, :, :2], "tgt")
                 distances = self.scaler.scale(distances, "dist")
-                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
                 with autocast(dtype=torch.float16):
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.to(self.device))
+            elif self.model_type in ['SEASTAR']:
+                inputs, targets, distances, distance_types, dist_agents, dist_env = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long(),  batch['dist_agents'].to(self.device).long(), batch['dist_env'].to(self.device).long()  
+                src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
+                scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
+                targets = self.scaler.scale(targets[:, :, :2], "tgt")
+                distances = self.scaler.scale(dist_agents, "agent_dist")
+                dist_env = self.scaler.scale(dist_env, "env_dist")
+                inputs = torch.cat((scaled_inputs, inputs[:, :, 3:].to(self.device)), dim=2)
+                with autocast(dtype=torch.float16):
+                    outputs = self.model(inputs.float(), distances.float(), distance_types.float(), env_dist=dist_env.float(),src_mask=src_mask.to(self.device))
+
 
             # Compute loss, backpropagate, and optimize
             loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
@@ -287,7 +423,7 @@ class Experiment:
             # Accumulate loss and update progress bar
             train_loss += loss.item()
             progress_bar.set_postfix({'Training Loss': train_loss / ((batch_idx + 1) * len(inputs))})
-
+            
         return train_loss
 
     
@@ -310,30 +446,41 @@ class Experiment:
             for batch_idx, batch in enumerate(valid_loader):
                 # Handle different model types and prepare inputs/targets accordingly
                 if self.model_type == 'Base':
-                    inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                    inputs, targets = batch['src'].to(self.device), batch['tgt'].to(self.device)
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                     inputs = self.scaler.scale(inputs[:, :, :3], "src")
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
                 
                 elif self.model_type == 'Transformer':
-                    inputs, targets = batch['src'].cuda(), batch['tgt'].cuda()
+                    inputs, targets = batch['src'].to(self.device), batch['tgt'].to(self.device)
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     tgt_mask = self.create_mask(targets.shape[0], targets.shape[1])
                     scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
-                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
+                    outputs = self.model(inputs, targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
                 
                 elif self.model_type in ['STAR', 'SAESTAR']:
-                    inputs, targets, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
+                    inputs, targets, distances, distance_types = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device), batch['type'].to(self.device)
                     src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
                     scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
                     targets = self.scaler.scale(targets[:, :, :2], "tgt")
                     distances = self.scaler.scale(distances, "dist")
-                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 4:].to(self.device)), dim=2)
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.to(self.device))
+                elif self.model_type in ['SEASTAR']:
+                    inputs, targets, distances, distance_types, dist_agents, dist_env = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long(),  batch['dist_agents'].to(self.device).long(), batch['dist_env'].to(self.device).long()  
+                    src_mask = self.create_mask(inputs.shape[0], inputs.shape[1])
+                    scaled_inputs = self.scaler.scale(inputs[:, :, :3], "src")
+                    targets = self.scaler.scale(targets[:, :, :2], "tgt")
+                    distances = self.scaler.scale(dist_agents, "agent_dist")
+                    dist_env = self.scaler.scale(dist_env, "env_dist")
+                    inputs = torch.cat((scaled_inputs, inputs[:, :, 3:].to(self.device)), dim=2)
+                    with autocast(dtype=torch.float16):
+                        outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
+
 
                 # Compute loss
                 loss = self.criterion(outputs.type(torch.float32), targets.type(torch.float32))
@@ -352,7 +499,7 @@ class Experiment:
             train_loader (DataLoader): The DataLoader for the training dataset.
             valid_loader (DataLoader): The DataLoader for the validation dataset.
         """
-        self.model.cuda()  # Move model to GPU
+        self.model.to(self.device)  # Move model to GPU
         best_valid_loss = float('inf')
         early_stopping_counter = 0
 
@@ -487,7 +634,7 @@ class Experiment:
             test_loader (DataLoader): The DataLoader for the test dataset.
         """
         # Set model to evaluation mode and move it to GPU
-        self.model.cuda()
+        self.model.to(self.device)
         self.model.eval()
         
         # Initialize lists to store results and predictions
@@ -509,31 +656,41 @@ class Experiment:
             for batch_idx, batch in enumerate(test_loader):
                 # Retrieve inputs and targets for each model type
                 if self.model_type == 'Base':
-                    src, tgt = batch['src'].cuda(), batch['tgt'].cuda()
+                    src, tgt = batch['src'].to(self.device), batch['tgt'].to(self.device)
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     tgt_mask = self.create_mask(tgt.shape[0], tgt.shape[1])
                     inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
-                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    outputs = self.model(inputs[:, :, :2], targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
 
                 elif self.model_type == 'Transformer':
-                    src, tgt = batch['src'].cuda(), batch['tgt'].cuda()
+                    src, tgt = batch['src'].to(self.device), batch['tgt'].to(self.device)
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     tgt_mask = self.create_mask(tgt.shape[0], tgt.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
-                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs, targets, src_mask=src_mask.cuda(), tgt_mask=tgt_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
+                    outputs = self.model(inputs, targets, src_mask=src_mask.to(self.device), tgt_mask=tgt_mask.to(self.device))
 
                 elif self.model_type == 'STAR' or self.model_type == 'SAESTAR':
-                    src, tgt, distances, distance_types = batch['src'].cuda(), batch['tgt'].cuda(), batch['distance'].cuda(), batch['type'].cuda()
+                    src, tgt, distances, distance_types = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device), batch['type'].to(self.device)
                     src_mask = self.create_mask(src.shape[0], src.shape[1])
                     scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
                     targets = self.scaler.scale(tgt[:, :, :2], "tgt")
                     distances = self.scaler.scale(distances, "dist")
-                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].cuda()), dim=2)
-                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.cuda())
+                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, src_mask=src_mask.to(self.device))
+                elif self.model_type == 'SEASTAR':
+                    src, tgt, distances, distance_types, dist_agents, dist_env = batch['src'].to(self.device), batch['tgt'].to(self.device), batch['distance'].to(self.device).long(), batch['type'].to(self.device).long(),  batch['dist_agents'].to(self.device).long(), batch['dist_env'].to(self.device).long()
+                    src_mask = self.create_mask(src.shape[0], src.shape[1])
+                    scaled_inputs = self.scaler.scale(src[:, :, :3], "src")
+                    targets = self.scaler.scale(tgt[:, :, :2], "tgt")
+                    distances = self.scaler.scale(dist_agents, "agent_dist")
+                    dist_env = self.scaler.scale(dist_env, "env_dist")
+                    inputs = torch.cat((scaled_inputs, src[:, :, 4:].to(self.device)), dim=2)
+                    outputs = self.model(inputs.type(torch.float32), distances.type(torch.float32), distance_types, env_dist=dist_env, src_mask=src_mask.to(self.device))
 
+    
                 # Unscale the model outputs to original values
                 new_outputs = self.scaler.unscale(outputs, "tgt", tgt[:, :, :2].shape)
                 
@@ -575,7 +732,7 @@ class Experiment:
             writer.close()
             
             # Save the results to CSV
-            file_path = f"./data/Results/{self.model_type}/{self.location_name}/src_pred_tgt_results.csv"
+            file_path = f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_src_pred_tgt_results.csv"
             with open(file_path, mode='w', newline='') as file:
                 csv_writer = csv.writer(file)
                 csv_writer.writerow(["Source", "Prediction", "Target"])
@@ -592,9 +749,9 @@ class Experiment:
         tgt_tensor = torch.tensor(tgt_tensor)
         pred_tensor = torch.tensor(pred_tensor)
 
-        torch.save(src_tensors, f"./data/Results/{self.model_type}/{self.location_name}/src.pt")
-        torch.save(tgt_tensor, f"./data/Results/{self.model_type}/{self.location_name}/tgt.pt")
-        torch.save(pred_tensor, f"./data/Results/{self.model_type}/{self.location_name}/pred.pt")
+        torch.save(src_tensors, f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_src.pt")
+        torch.save(tgt_tensor, f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_tgt.pt")
+        torch.save(pred_tensor, f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_pred.pt")
 
         # Calculate overall metrics across all batches
         mean_ADE = np.mean(all_ADE)
@@ -607,7 +764,7 @@ class Experiment:
         min_FDE = all_FDE[min_FDE_idx]
 
         # Save the overall metrics to a file
-        save_file = f"./data/Results/{self.model_type}/{self.location_name}/metrics.txt"
+        save_file = f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_metrics.txt"
         with open(save_file, "w") as file:
             file.write(f"Mean ADE: {mean_ADE}\n")
             file.write(f"Mean FDE: {mean_FDE}\n")
