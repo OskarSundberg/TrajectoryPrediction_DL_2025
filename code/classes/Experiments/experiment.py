@@ -55,6 +55,7 @@ class Experiment:
         model_name: str, 
         src_len: int, 
         tgt_len: int, 
+        seed,
         num_types: int = None, 
         graph_dims: int = None, 
         layers: int = 16, 
@@ -81,6 +82,7 @@ class Experiment:
         self.optimizer = None
         self.model = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.seed = seed
         
         # Select the model architecture based on the model_name
         if model_name == "Base":
@@ -730,7 +732,7 @@ class Experiment:
             writer.close()
             
             # Save the results to CSV
-            file_path = f"./data/Results/{self.model_type}/{self.location_name}/src_pred_tgt_results.csv"
+            file_path = f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_src_pred_tgt_results.csv"
             with open(file_path, mode='w', newline='') as file:
                 csv_writer = csv.writer(file)
                 csv_writer.writerow(["Source", "Prediction", "Target"])
@@ -747,9 +749,9 @@ class Experiment:
         tgt_tensor = torch.tensor(tgt_tensor)
         pred_tensor = torch.tensor(pred_tensor)
 
-        torch.save(src_tensors, f"./data/Results/{self.model_type}/{self.location_name}/src.pt")
-        torch.save(tgt_tensor, f"./data/Results/{self.model_type}/{self.location_name}/tgt.pt")
-        torch.save(pred_tensor, f"./data/Results/{self.model_type}/{self.location_name}/pred.pt")
+        torch.save(src_tensors, f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_src.pt")
+        torch.save(tgt_tensor, f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_tgt.pt")
+        torch.save(pred_tensor, f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_pred.pt")
 
         # Calculate overall metrics across all batches
         mean_ADE = np.mean(all_ADE)
@@ -762,7 +764,7 @@ class Experiment:
         min_FDE = all_FDE[min_FDE_idx]
 
         # Save the overall metrics to a file
-        save_file = f"./data/Results/{self.model_type}/{self.location_name}/metrics.txt"
+        save_file = f"./data/Results/{self.model_type}/{self.location_name}/{self.seed}_metrics.txt"
         with open(save_file, "w") as file:
             file.write(f"Mean ADE: {mean_ADE}\n")
             file.write(f"Mean FDE: {mean_FDE}\n")

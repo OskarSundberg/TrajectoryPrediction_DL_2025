@@ -42,7 +42,8 @@ class ExperimentManager:
         tgt_len: int, 
         batch_size: int,
         hidden_size: int,
-        earlystopping : int
+        earlystopping : int,
+        seed
     ):
         """
         Initialize the ExperimentManager with necessary configurations and perform initial visualizations.
@@ -72,6 +73,7 @@ class ExperimentManager:
         self.earlystopping = earlystopping
         self.src_len = src_len
         self.tgt_len = tgt_len
+        self.seed = seed
         
         # Perform initial visualizations for trajectory, time distribution, and counts
         self.viz.visualize_all_trajectories()
@@ -507,7 +509,8 @@ class ExperimentManager:
             lr=self.lr,
             epochs=self.epochs,
             location_name=self.location.location_name,
-            earlystopping=self.earlystopping
+            earlystopping=self.earlystopping,
+            seed=self.seed
         )
         
         # Training and testing the model

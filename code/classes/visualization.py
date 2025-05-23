@@ -690,7 +690,7 @@ class Visualization:
         # loop over the 2 rois
         for roi in self.loc.roi:
             # Loop through all instances in the prediction and target data
-            for instance in range(pred.shape[0]):
+            for instance in range(min(pred.shape[0], 1)):
                 pred_coords = pred[instance, :, :2].cpu().numpy()  # Get the predicted coordinates
                 tgt_coords = tgt[instance, :, :2].cpu().numpy()  # Get the ground truth coordinates
 
