@@ -1,3 +1,7 @@
+#
+# Modified by Linus Savinainen and Oskar Sundberg 2025
+#
+
 import pandas as pd
 import numpy as np
 
@@ -99,7 +103,7 @@ class TrajectoryDataset(Dataset):
             current_id = src_group['ID'].iloc[0]
             others = self.data[self.data['ID'] != current_id]
 
-            # Agent-agent distances
+            #Agent-agent distances
             for t_idx, t in enumerate(timestamps):
                 agents = others[others['Time'] == t][['X','Y','Type']].values
                 if agents.shape[0] > 0:
@@ -108,8 +112,8 @@ class TrajectoryDataset(Dataset):
                     combined_type[t_idx, :n] = torch.tensor(agents[:n, 2], dtype=torch.float32)
                     combined_dist[t_idx, :n] = self.calculations.calculate_distances(src[t_idx, :2], pos)
 
-            # Agent-env distances
-            special = {9, 10, 11}
+            #Agent-env distances
+            special = {9, 10, 11}# i.e., points that are only (x, y) coordinates, instead of areas
             dfv_len = len(self.df_vector)
             for t_idx in range(T):
                 agent_pos = src[t_idx, :2]
@@ -135,13 +139,13 @@ class TrajectoryDataset(Dataset):
             dist_combined = combined_dist.clone()
             type_combined = combined_type.clone()
 
-            # Agent–agent only (env dims zeroed)
+            # Agent–agent only (env zeroed)
             dist_agents_only = combined_dist.clone()
             dist_agents_only[:, A:] = 0
             type_agents_only = combined_type.clone()
             type_agents_only[:, A:] = 0
 
-            # Agent–env only (agent dims zeroed)
+            # Agent–env only (agent zeroed)
             dist_env_only = combined_dist.clone()
             dist_env_only[:, :A] = 0
             type_env_only = combined_type.clone()

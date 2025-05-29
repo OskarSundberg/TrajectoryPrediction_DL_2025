@@ -1,3 +1,7 @@
+#
+# Created by Linus Savinainen and Oskar Sundberg 2025
+#
+
 import torch
 import torch.nn as nn
 from classes.Embeddings.seastar_embedding import SEASTAREmbedding
@@ -24,13 +28,13 @@ class SEASTAR(nn.Module):
         self.embedding_size = sum(src_dims)
         self.output_size    = 2
 
-        # 1) shared embedding for all three streams
+        # 1) Shared embedding module for all three embedding domains
         self.embedding = SEASTAREmbedding(
             src_dims, dist_dims, type_dims, env_dims,
             num_types, num_types_dist, sequence_length_src=src_len
         )
 
-        # 2) First‑pass transformers (one each)
+        # 2) First‑pass transformers (one each embedding domain)
         self.spatial_encoder_1      = nn.TransformerEncoderLayer(
             d_model=self.embedding_size, nhead=num_heads, batch_first=True
         )
@@ -41,10 +45,10 @@ class SEASTAR(nn.Module):
             d_model=self.embedding_size, nhead=num_heads, batch_first=True
         )
 
-        # 3) Fusion FC
+        # 3) Fusion FC, 3 embedding domains becomes one fused 
         self.fusion = nn.Linear(self.embedding_size * 3, self.embedding_size)
 
-        # 4) Second‑pass transformers
+        # 4) Second‑pass transformers on fused
         self.spatial_encoder_2      = nn.TransformerEncoderLayer(
             d_model=self.embedding_size, nhead=num_heads, batch_first=True
         )
@@ -62,6 +66,11 @@ class SEASTAR(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden, self.tgt_len * self.output_size)
         )
+
+    #Input tensor shapes:
+    #B ==> Batch size: number of independent samples in a batch
+    #S ==> Sequence length: number time steps per sample
+    #G ==> Number of interaction features 
 
     def forward(self, src, dist, type_dist, env_dist, src_mask=None):
         """
@@ -82,17 +91,15 @@ class SEASTAR(nn.Module):
         # --- Fusion ---
         # concat along last dim: (B, S, 3*embed)
         fused = torch.cat([sp1, tp1, en1], dim=-1)
-        fused = self.fusion(fused)                         # (B, S, embed)
+        fused = self.fusion(fused)                       
 
         # --- Encoder 2 (sequence) ---
         x = self.spatial_encoder_2(fused, src_mask)
         x = self.environmental_encoder_2(x, src_mask)
-        x = self.temporal_encoder_2(x, src_mask)            # (B, S, embed)
+        x = self.temporal_encoder_2(x, src_mask)            
 
-        # pick only the last source position to decode future?
-        # or flatten all S steps?
-        # Here, we decode from the final timestep:
-        last = x[:, -1, :]      # (B, embed)
+        #Gets final timestep
+        last = x[:, -1, :]      
 
         # --- Decoder ---
         out = self.decoder(last) # (B, tgt_len * 2)
