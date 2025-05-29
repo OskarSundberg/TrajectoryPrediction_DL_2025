@@ -1,3 +1,7 @@
+#
+# Modified by Linus Savinainen and Oskar Sundberg
+#
+
 import numpy as np
 import pandas as pd
 import torch
@@ -31,9 +35,11 @@ class Scaler:
             elif model_name == "SAESTAR":
                 self.dist_scaler = self.create_scaler(train_data['distance'])
             elif model_name == "SEASTAR":
+                # added by Linus and Oskar
                 self.dist_scaler = self.create_scaler(train_data['distance'])
                 self.env_dist = self.create_scaler(train_data['dist_env'])
                 self.agent_dist = self.create_scaler(train_data['dist_agents'])
+
     def create_scaler(self, data):
         """
         Creates and fits a MinMaxScaler to the provided data.
@@ -76,9 +82,9 @@ class Scaler:
             scaler = self.tgt_scaler
         elif scaler_type == "dist":
             scaler = self.dist_scaler
-        elif scaler_type == "env_dist":
+        elif scaler_type == "env_dist": # added by Linus and Oskar
             scaler = self.env_dist
-        elif scaler_type == "agent_dist":
+        elif scaler_type == "agent_dist": # added by Linus and Oskar
             scaler = self.agent_dist
         # Get the shape of the input data
         shape = data.shape
@@ -109,9 +115,9 @@ class Scaler:
             scaler = self.src_scaler
         elif scaler_type == "tgt":
             scaler = self.tgt_scaler
-        elif scaler_type == "env_dist":
+        elif scaler_type == "env_dist": # added by Linus and Oskar
             scaler = self.env_dist
-        elif scaler_type == "agent_dist":
+        elif scaler_type == "agent_dist": # added by Linus and Oskar
             scaler = self.agent_dist
         else:
             scaler = self.dist_scaler

@@ -1,3 +1,7 @@
+#
+# Created by Linus Savinainen and Oskar Sundberg
+#
+
 import os
 import glob
 import re
@@ -74,7 +78,7 @@ def compute_average_metrics(
     print()
 
     # Compute full path for output
-    output_path = os.path.join(directory, output_file)
+    output_path = os.path.join(directory, f"{model}_{output_file}")
 
     # Save to output file
     try:
@@ -86,4 +90,7 @@ def compute_average_metrics(
         print(f"Failed to write to {output_path}: {e}")
 
 if __name__ == "__main__":
-    compute_average_metrics(model="SEASTAR", precision=2)
+    compute_average_metrics(model="SEASTAR", 
+                            location="Valhallavagen",
+                            output_file="average_metrics_summary.txt",
+                            precision=2)

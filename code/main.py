@@ -1,3 +1,7 @@
+#
+# Modified by Linus Savinainen and Oskar Sundberg
+#
+
 import torch
 import gc
 import os
@@ -128,15 +132,38 @@ roi_torpagatan = [
     {'roi_x_min':1020, 'roi_x_max':1090, 'roi_y_min':400, 'roi_y_max':490, 'object_x':1047, 'object_y':449, 'type':'Tree'}
     ]
 
-def vizualize_location(exp_manager : ExperimentManager, model_name : str):
-    def load_tensors(model : str, location : str):
-        pred = torch.load(f"./data/Results/{model}/{location}/pred.pt", weights_only=True)
-        tgt = torch.load(f"./data/Results/{model}/{location}/tgt.pt", weights_only=True)
+def visualize_location(exp_manager: ExperimentManager, model_name: str, seed):
+    """Created by Linus and Oskar, using modified code from McMurray.
+    
+    Visualize a location using the specified model and seed.
+
+    Args:
+        exp_manager (ExperimentManager): The experiment manager containing the necessary context.
+        model_name (str): The name of the model whose results are to be visualized.
+        seed: The seed used for loading specific results.
+    """
+    def load_tensors(model: str, location: str, seed):
+        """Load the prediction and target tensors from the specified model and location.
+
+        Args:
+            model (str): The name of the model.
+            location (str): The name of the location.
+            seed: The seed used for loading specific results.
+
+        Returns:
+            dict: A dictionary containing the loaded prediction and target tensors.
+        """
+        # Load the predicted values and target values from the disk.
+        pred = torch.load(f"./data/Results/{model}/{location}/{seed}_pred.pt", weights_only=True)
+        tgt = torch.load(f"./data/Results/{model}/{location}/{seed}_tgt.pt", weights_only=True)
         
+        # Return the loaded tensors in a dictionary.
         return {'pred': pred, 'tgt': tgt}
 
-    tensors = load_tensors(model=model_name, location=exp_manager.location.location_name)
+    # Load the tensors using the helper function defined above.
+    tensors = load_tensors(model=model_name, location=exp_manager.location.location_name, seed=seed)
 
+    # Visualize the region of interest with the loaded prediction and target tensors.
     exp_manager.viz.visualize_roi_valhallavagen(pred=tensors["pred"],
                                                 tgt=tensors["tgt"],
                                                 model_name=model_name,
@@ -154,9 +181,9 @@ def vizualize_location(exp_manager : ExperimentManager, model_name : str):
 #                os.remove(item_path)
 
 # needed for when debugging on cpu
-#print(f"cwd = {os.getcwd()}")
-#os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
-#print(f"cwd = {os.getcwd()}")
+# print(f"cwd = {os.getcwd()}")
+# os.chdir("/home/sali20jt/viscando/TrajectoryPrediction_DL_2025/code")
+# print(f"cwd = {os.getcwd()}")
 
 if __name__=="__main__":
     # if False:
@@ -175,12 +202,13 @@ if __name__=="__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    
     # Apply deterministic on CUDA convoltion operations
     torch.backends.cudnn.deterministic = True
     # Disable benchmark mode
     torch.backends.cudnn.benchmark = False
-    # Create a manual seed for testing
-    for i in range(10):
+
+    for i in range(1): # Loop the experiments, using new random seeds each time
         fresh_seed = torch.seed()
         torch.manual_seed(fresh_seed)
         print(f"Using seed {fresh_seed}")
@@ -196,6 +224,7 @@ if __name__=="__main__":
         hidden_size = 512
         earlystopping = 30
 
+        # Original hyperparameters by McMurray
         # epochs = 300
         # num_layers = 16
         # num_heads = 8
@@ -206,7 +235,6 @@ if __name__=="__main__":
         # batch_size = 32
         # hidden_size = 512
         # earlystopping = 30
-
         
         valhallavagen = Location(
             min_x=Valhallavagen_X_min, 
@@ -235,17 +263,20 @@ if __name__=="__main__":
             earlystopping=earlystopping,
             seed=fresh_seed
             )
-        
+
+        # Visualize a result after the experiment
+        visualize_location(exp_manager=experiment_manager, model_name="SEASTAR", seed=13976863703163844167)
+
         # experiment_manager.experiment_base()
         # experiment_manager.experiment_transformer()
         # experiment_manager.experiment_star()
         # experiment_manager.experiment_saestar()
-        experiment_manager.experiment_seastar(device=device)
+        # experiment_manager.experiment_seastar(device=device) # our SEA-STAR model
 
         # vizualize_location(exp_manager=experiment_manager, model_name="SEASTAR")
 
-        del valhallavagen, viz, experiment_manager
-        gc.collect()
+        # del valhallavagen, viz, experiment_manager
+        # gc.collect()
         
         # torpagatan = Location(
         #     min_x=Torpagatan_X_min, 
@@ -271,11 +302,15 @@ if __name__=="__main__":
         #     tgt_len=tgt_len,
         #     batch_size=batch_size,
         #     hidden_size=hidden_size,
-        #     earlystopping=earlystopping
+        #     earlystopping=earlystopping,
+        #     seed=fresh_seed
         #     )
-        
-        #experiment_manager.experiment_base()
-        #experiment_manager.experiment_transformer()
-        #experiment_manager.experiment_star()
-        #experiment_manager.experiment_saestar()
-        #experiment_manager.experiment_seastar()
+
+        # experiment_manager.experiment_base()
+        # experiment_manager.experiment_transformer()
+        # experiment_manager.experiment_star()
+        # experiment_manager.experiment_saestar()
+        # experiment_manager.experiment_seastar(device=device) # our SEA-STAR model
+
+        # Visualize a result after the experiment
+        # visualize_location(exp_manager=experiment_manager, model_name="Base", seed=11298681380335132517)

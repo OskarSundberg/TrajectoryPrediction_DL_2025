@@ -298,7 +298,7 @@ class Visualization:
                         # Save the plot and close the figure
                         plt.legend(["Source", "Prediction", "Ground Truth"])
                         plt.title(f'Visualization of Predictions to Ground Truth {model_name} {self.loc.location_name}')
-                        plt.savefig(f'/data/Results/{model_name}/{self.loc.location_name}/{type_a}_{type_b}/visualization_{i}.png')
+                        plt.savefig(f'./data/Results/{model_name}/{self.loc.location_name}/{type_a}_{type_b}/visualization_{i}.png')
                         plt.close()
                         break
 
@@ -596,8 +596,6 @@ class Visualization:
         None: The plot is saved to the specified directory.
         """
         
-        roi = self.loc.roi  # Get the Region of Interest (ROI) settings
-        
         # Load and resize the image for the visualization
         img = cv2.imread(self.loc.img, 1)
         img = cv2.resize(img, (self.loc.img_size_X, self.loc.img_size_y))
@@ -606,47 +604,48 @@ class Visualization:
         plt.figure(figsize=(10, 10))
         plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for display
 
-        # Loop through all instances in the prediction and target data
-        for instance in range(pred.shape[0]):
-            pred_coords = pred[instance, :, :2].cpu().numpy()  # Get the predicted coordinates
-            tgt_coords = tgt[instance, :, :2].cpu().numpy()  # Get the ground truth coordinates
+        for roi in self.loc.roi:
+            # Loop through all instances in the prediction and target data
+            for instance in range(pred.shape[0]):
+                pred_coords = pred[instance, :, :2].cpu().numpy()  # Get the predicted coordinates
+                tgt_coords = tgt[instance, :, :2].cpu().numpy()  # Get the ground truth coordinates
 
-            # Create masks to filter coordinates within the ROI
-            roi_mask_pred = (
-                (pred_coords[:, 0] >= roi['roi_x_min']) & (pred_coords[:, 0] <= roi['roi_x_max']) &
-                (pred_coords[:, 1] >= roi['roi_y_min']) & (pred_coords[:, 1] <= roi['roi_y_max'])
-            )
-            roi_mask_tgt = (
-                (tgt_coords[:, 0] >= roi['roi_x_min']) & (tgt_coords[:, 0] <= roi['roi_x_max']) &
-                (tgt_coords[:, 1] >= roi['roi_y_min']) & (tgt_coords[:, 1] <= roi['roi_y_max'])
-            )
+                # Create masks to filter coordinates within the ROI
+                roi_mask_pred = (
+                    (pred_coords[:, 0] >= roi['roi_x_min']) & (pred_coords[:, 0] <= roi['roi_x_max']) &
+                    (pred_coords[:, 1] >= roi['roi_y_min']) & (pred_coords[:, 1] <= roi['roi_y_max'])
+                )
+                roi_mask_tgt = (
+                    (tgt_coords[:, 0] >= roi['roi_x_min']) & (tgt_coords[:, 0] <= roi['roi_x_max']) &
+                    (tgt_coords[:, 1] >= roi['roi_y_min']) & (tgt_coords[:, 1] <= roi['roi_y_max'])
+                )
 
-            # Apply the masks to get the filtered coordinates
-            filtered_pred_coords = pred_coords[roi_mask_pred] if np.any(roi_mask_pred) else np.array([]).reshape(0, 2)
-            filtered_tgt_coords = tgt_coords[roi_mask_tgt] if np.any(roi_mask_tgt) else np.array([]).reshape(0, 2)
+                # Apply the masks to get the filtered coordinates
+                filtered_pred_coords = pred_coords[roi_mask_pred] if np.any(roi_mask_pred) else np.array([]).reshape(0, 2)
+                filtered_tgt_coords = tgt_coords[roi_mask_tgt] if np.any(roi_mask_tgt) else np.array([]).reshape(0, 2)
 
-            # Plot the filtered coordinates (either prediction or ground truth)
+                # Plot the filtered coordinates (either prediction or ground truth)
+                if is_pred:
+                    if filtered_pred_coords.size > 0:
+                        plt.plot(filtered_pred_coords[:, 0], filtered_pred_coords[:, 1], color='red', linewidth=0.1)
+                else:
+                    if filtered_tgt_coords.size > 0:
+                        plt.plot(filtered_tgt_coords[:, 0], filtered_tgt_coords[:, 1], color='green', linewidth=0.1)
+
+            # Plot the object location within the ROI
+            object_x = roi['object_x']
+            object_y = roi['object_y']
+            object_type = roi['type']
+            plt.scatter(object_x, object_y, color='black', s=5, label=object_type)  # Mark the object location
+            plt.legend()
+
+            # Save the figure with the appropriate title and file path
             if is_pred:
-                if filtered_pred_coords.size > 0:
-                    plt.plot(filtered_pred_coords[:, 0], filtered_pred_coords[:, 1], color='red', linewidth=0.1)
+                plt.title('Visualization of Predictions in ROI')
+                plt.savefig(f'./data/Results/{model_name}/{self.loc.location_name}/ROI__prediction{object_type}_{object_x}_{object_y}.png')
             else:
-                if filtered_tgt_coords.size > 0:
-                    plt.plot(filtered_tgt_coords[:, 0], filtered_tgt_coords[:, 1], color='green', linewidth=0.1)
-
-        # Plot the object location within the ROI
-        object_x = roi['object_x']
-        object_y = roi['object_y']
-        object_type = roi['type']
-        plt.scatter(object_x, object_y, color='black', s=5, label=object_type)  # Mark the object location
-        plt.legend()
-
-        # Save the figure with the appropriate title and file path
-        if is_pred:
-            plt.title('Visualization of Predictions in ROI')
-            plt.savefig(f'/data/Results/{model_name}/{self.loc.location_name}/ROI__prediction{object_type}_{object_x}_{object_y}.png')
-        else:
-            plt.title('Visualization of Ground Truth in ROI')
-            plt.savefig(f'/data/Results/{model_name}/{self.loc.location_name}/ROI_actual_{object_type}_{object_x}_{object_y}.png')
+                plt.title('Visualization of Ground Truth in ROI')
+                plt.savefig(f'./data/Results/{model_name}/{self.loc.location_name}/ROI_actual_{object_type}_{object_x}_{object_y}.png')
 
 
     def visualize_roi_valhallavagen(
@@ -690,7 +689,7 @@ class Visualization:
         # loop over the 2 rois
         for roi in self.loc.roi:
             # Loop through all instances in the prediction and target data
-            for instance in range(min(pred.shape[0], 1)):
+            for instance in range(min(pred.shape[0], 1000)):
                 pred_coords = pred[instance, :, :2].cpu().numpy()  # Get the predicted coordinates
                 tgt_coords = tgt[instance, :, :2].cpu().numpy()  # Get the ground truth coordinates
 

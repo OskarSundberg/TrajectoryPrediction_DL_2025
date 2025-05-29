@@ -1,0 +1,11 @@
+Per-file Metrics:
+1659920276029793502_metrics.txt: Mean ADE: 54.79, Mean FDE: 57.74, Min ADE: 1.16, Min FDE: 0.04
+16991146509619660848_metrics.txt: Mean ADE: 53.89, Mean FDE: 56.58, Min ADE: 1.01, Min FDE: 0.07
+14441408102669182996_metrics.txt: Mean ADE: 55.67, Mean FDE: 57.86, Min ADE: 1.18, Min FDE: 0.04
+47_metrics.txt: Mean ADE: 56.46, Mean FDE: 57.98, Min ADE: 0.96, Min FDE: 0.16
+
+Summary Statistics Across Files:
+Mean ADE: mean=55.20, variance=0.92, stdev=0.96 (from 4 files)
+Mean FDE: mean=57.54, variance=0.31, stdev=0.56 (from 4 files)
+Min ADE: mean=1.08, variance=0.01, stdev=0.09 (from 4 files)
+Min FDE: mean=0.08, variance=0.00, stdev=0.05 (from 4 files)
